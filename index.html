@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SmartAsset</title>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <h1>SmartAsset - Add Asset</h1>
+  <form id="assetForm">
+    <label>Type: <input type="text" id="type" required></label><br><br>
+    <label>Serial Number: <input type="text" id="serialNumber" required></label><br><br>
+    <label>Location: <input type="text" id="location" required></label><br><br>
+    <label>Status: 
+      <select id="status">
+        <option>Active</option>
+        <option>Faulty</option>
+        <option>Retired</option>
+      </select>
+    </label><br><br>
+    <button type="submit">Add Asset</button>
+  </form>
+
+  <script type="module">
+    // Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCoYt0CTHkE6uPKODEDwh0FNH3vA_VADsI",
+      authDomain: "smartasset-d18c0.firebaseapp.com",
+      projectId: "smartasset-d18c0",
+      storageBucket: "smartasset-d18c0.appspot.com",
+      messagingSenderId: "345539034912",
+      appId: "1:345539034912:web:e8f8a36e317f37d090e145"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Handle form submit
+    document.getElementById("assetForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const type = document.getElementById("type").value;
+      const serialNumber = document.getElementById("serialNumber").value;
+      const location = document.getElementById("location").value;
+      const status = document.getElementById("status").value;
+
+      try {
+        await addDoc(collection(db, "assets"), {
+          type,
+          serialNumber,
+          location,
+          status,
+          createdAt: new Date()
+        });
+        alert("✅ Asset added to Firestore!");
+        e.target.reset();
+      } catch (error) {
+        console.error("❌ Error adding asset:", error);
+        alert("Failed to add asset.");
+      }
+    });
+  </script>
+</body>
+</html>
