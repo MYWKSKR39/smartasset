@@ -1,22 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>SmartAsset Login</title>
 </head>
 <body>
-  <h2>Login</h2>
-  <input type="email" id="email" placeholder="Enter Email" required><br><br>
-  <input type="password" id="password" placeholder="Enter Password" required><br><br>
-  <button onclick="loginUser()">Login</button>
+  <h2>Employee/Admin Login</h2>
+
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Email" required><br><br>
+    <input type="password" id="password" placeholder="Password" required><br><br>
+    <button type="submit">Login</button>
+  </form>
 
   <script type="module">
-    // Import Firebase
+    // Import Firebase SDKs
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     // Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyCoYt0CTHkE6uPKODEDwh0FNH3vA_VADsI",
+      apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
       authDomain: "smartasset-d18c0.firebaseapp.com",
       projectId: "smartasset-d18c0",
       storageBucket: "smartasset-d18c0.appspot.com",
@@ -28,23 +32,21 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Login function
-    window.loginUser = function () {
+    // Handle login form submit
+    document.getElementById("login-form").addEventListener("submit", (e) => {
+      e.preventDefault();
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-          const user = userCredential.user;
-          alert("Login successful!");
-          // Redirect or role-based navigation can go here
-          // Example:
-          // window.location.href = "dashboard.html";
+          alert("Login successful! Welcome " + userCredential.user.email);
+          // redirect or display secured content
         })
         .catch((error) => {
           alert("Login failed: " + error.message);
         });
-    }
+    });
   </script>
 </body>
 </html>
