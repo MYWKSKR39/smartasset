@@ -1,31 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SmartAsset</title>
-  <meta charset="UTF-8">
+  <title>SmartAsset Login</title>
 </head>
 <body>
-  <h1>SmartAsset - Add Asset</h1>
-  <form id="assetForm">
-    <label>Type: <input type="text" id="type" required></label><br><br>
-    <label>Serial Number: <input type="text" id="serialNumber" required></label><br><br>
-    <label>Location: <input type="text" id="location" required></label><br><br>
-    <label>Status: 
-      <select id="status">
-        <option>Active</option>
-        <option>Faulty</option>
-        <option>Retired</option>
-      </select>
-    </label><br><br>
-    <button type="submit">Add Asset</button>
-  </form>
+  <h2>Login</h2>
+  <input type="email" id="email" placeholder="Enter Email" required><br><br>
+  <input type="password" id="password" placeholder="Enter Password" required><br><br>
+  <button onclick="loginUser()">Login</button>
 
   <script type="module">
-    // Firebase imports
+    // Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-    // Your Firebase config
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCoYt0CTHkE6uPKODEDwh0FNH3vA_VADsI",
       authDomain: "smartasset-d18c0.firebaseapp.com",
@@ -37,32 +26,25 @@
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    // Handle form submit
-    document.getElementById("assetForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
+    // Login function
+    window.loginUser = function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-      const type = document.getElementById("type").value;
-      const serialNumber = document.getElementById("serialNumber").value;
-      const location = document.getElementById("location").value;
-      const status = document.getElementById("status").value;
-
-      try {
-        await addDoc(collection(db, "assets"), {
-          type,
-          serialNumber,
-          location,
-          status,
-          createdAt: new Date()
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          alert("Login successful!");
+          // Redirect or role-based navigation can go here
+          // Example:
+          // window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          alert("Login failed: " + error.message);
         });
-        alert("✅ Asset added to Firestore!");
-        e.target.reset();
-      } catch (error) {
-        console.error("❌ Error adding asset:", error);
-        alert("Failed to add asset.");
-      }
-    });
+    }
   </script>
 </body>
 </html>
