@@ -1,105 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartAsset Admin</title>
-  <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; }
-    #header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f4f4f4; }
-    #header .user { font-weight: bold; }
-    #header button { margin-left: 0.5rem; }
-    #assetList { padding: 1rem; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
-    th { background: #eee; }
-  </style>
+  <title>SmartAsset - Admin Dashboard</title>
 </head>
 <body>
+  <h3>Logged in as: <span id="userEmail"></span></h3>
 
-  <div id="header">
-    <div class="user">Logged in as: <span id="userEmail"></span></div>
-    <div>
-      <button id="addBtn">Add</button>
-      <button id="approveBtn">Approve</button>
-    </div>
-  </div>
+  <button onclick="window.location.href='add.html'">Add</button>
+  <button onclick="alert('Approve function not yet implemented')">Approve</button>
 
-  <div id="assetList">
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Serial #</th>
-          <th>Location</th>
-          <th>Status</th>
-          <th>Created At</th>
-        </tr>
-      </thead>
-      <tbody id="assetTableBody">
-        <!-- Filled dynamically -->
-      </tbody>
-    </table>
-  </div>
+  <h2>Asset List</h2>
+  <ul id="assetList"></ul>
 
   <script type="module">
-    // 1) Firebase SDK imports
+    // Import Firebase libraries
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    // 2) Your Firebase config
+    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
       authDomain: "smartasset-d18c0.firebaseapp.com",
       projectId: "smartasset-d18c0",
-      storageBucket: "smartasset-d18c0.appspot.com",
+      storageBucket: "smartasset-d18c0.firebasestorage.app",
       messagingSenderId: "345539034912",
       appId: "1:345539034912:web:e8f8a36e317f37d090e145"
     };
 
-    // 3) Initialize
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 4) Only load dashboard if logged in; else redirect to login
-    onAuthStateChanged(auth, user => {
+    // Check login state and user role
+    onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        alert("You must be logged in.");
         window.location.href = "login.html";
         return;
       }
-      document.getElementById("userEmail").textContent = user.email;
-      loadAssets();
-    });
 
-    // 5) Fetch and render assets
-    async function loadAssets() {
-      const tbody = document.getElementById("assetTableBody");
-      tbody.innerHTML = ""; // clear
-      const snapshot = await getDocs(collection(db, "assets"));
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${data.type || ""}</td>
-          <td>${data.serialNumber || ""}</td>
-          <td>${data.location || ""}</td>
-          <td>${data.status || ""}</td>
-          <td>${data.createdAt?.toDate().toLocaleString() || ""}</td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
+      const email = user.email;
+      document.getElementById("userEmail").textContent = email;
 
-    // 6) Button handlers (placeholder)
-    document.getElementById("addBtn").addEventListener("click", () => {
-      window.location.href = "add.html";    // create this page next
-    });
-    document.getElementById("approveBtn").addEventListener("click", () => {
-      window.location.href = "approve.html"; // create this page next
+      if (email !== "admin@go-aheadsingapore.com") {
+        alert("Access denied. Admin only.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      // Load asset list
+      try {
+        const querySnapshot = await getDocs(collection(db, "assets"));
+        const assetList = document.getElementById("assetList");
+        querySnapshot.forEach((doc) => {
+          const asset = doc.data();
+          const li = document.createElement("li");
+          li.textContent = `${asset.type || "Unknown Type"} - ${asset.serialNumber || "No Serial"} - ${asset.status || "No Status"}`;
+          assetList.appendChild(li);
+        });
+      } catch (err) {
+        alert("Error loading assets: " + err.message);
+      }
     });
   </script>
-
 </body>
 </html>
