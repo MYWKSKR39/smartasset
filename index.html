@@ -20,7 +20,6 @@
       flex-direction: column;
     }
 
-    /* Top navbar */
     .navbar {
       background-color: #222;
       color: #fff;
@@ -51,7 +50,6 @@
       display: block;
     }
 
-    /* Hero section */
     .hero {
       background-color: #007bff;
       color: #fff;
@@ -100,7 +98,6 @@
       background-color: rgba(255, 255, 255, 0.12);
     }
 
-    /* Main content */
     main {
       flex: 1;
       display: flex;
@@ -134,7 +131,7 @@
       gap: 0.5rem;
       justify-content: flex-end;
       flex: 1;
-      min-width: 210px;
+      min-width: 230px;
     }
 
     .btn-secondary {
@@ -179,14 +176,23 @@
       background-color: #ffffff;
     }
 
-    tfoot td {
-      padding: 0.75rem 1rem;
-      text-align: center;
-      font-style: italic;
-      color: #555;
+    .btn-table {
+      font-size: 0.85rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
     }
 
-    /* Footer */
+    .btn-delete {
+      background-color: #e53935;
+      color: #fff;
+    }
+
+    .btn-delete:hover {
+      background-color: #c62828;
+    }
+
     footer {
       text-align: center;
       padding: 1rem 0.5rem 1.4rem 0.5rem;
@@ -254,11 +260,12 @@
               <th>Category</th>
               <th>Owner</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="assetTableBody">
             <tr>
-              <td colspan="5">Loading assets...</td>
+              <td colspan="6">Loading assets...</td>
             </tr>
           </tbody>
         </table>
@@ -282,7 +289,9 @@
       collection,
       getDocs,
       query,
-      orderBy
+      orderBy,
+      doc,
+      deleteDoc
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -322,9 +331,37 @@
       alert("Approve function not yet implemented");
     });
 
+    tbody.addEventListener("click", async (event) => {
+      const btn = event.target.closest(".btn-delete");
+      if (!btn) {
+        return;
+      }
+
+      const id = btn.getAttribute("data-id");
+      if (!id) {
+        return;
+      }
+
+      const confirmed = window.confirm("Remove this asset?");
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await deleteDoc(doc(db, "assets", id));
+        const row = btn.closest("tr");
+        if (row) {
+          row.remove();
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error removing asset: " + err.message);
+      }
+    });
+
     async function loadAssets() {
       tbody.innerHTML =
-        '<tr><td colspan="5">Loading assets...</td></tr>';
+        '<tr><td colspan="6">Loading assets...</td></tr>';
 
       try {
         const q = query(collection(db, "assets"), orderBy("assetId"));
@@ -334,14 +371,13 @@
 
         if (snapshot.empty) {
           tbody.innerHTML =
-            '<tr><td colspan="5">No assets found.</td></tr>';
+            '<tr><td colspan="6">No assets found.</td></tr>';
           return;
         }
 
         snapshot.forEach((docSnap) => {
           const asset = docSnap.data() || {};
 
-          // Support a few possible field names
           const assetId = asset.assetId || asset.AssetID || asset.id || "";
           const name =
             asset.name || asset.assetName || asset.type || "Unknown";
@@ -356,13 +392,18 @@
             <td>${category || "-"}</td>
             <td>${owner || "-"}</td>
             <td>${status || "-"}</td>
+            <td>
+              <button class="btn-table btn-delete" data-id="${docSnap.id}">
+                Remove
+              </button>
+            </td>
           `;
           tbody.appendChild(tr);
         });
       } catch (err) {
         console.error(err);
         tbody.innerHTML =
-          '<tr><td colspan="5">Error loading assets.</td></tr>';
+          '<tr><td colspan="6">Error loading assets.</td></tr>';
         alert("Error loading assets: " + err.message);
       }
     }
