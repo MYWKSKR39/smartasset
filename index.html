@@ -1,24 +1,290 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>SmartAsset - Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f5f7fb;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top navbar */
+    .navbar {
+      background-color: #222;
+      color: #fff;
+      padding: 0.7rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .navbar .brand {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .menu-icon {
+      width: 32px;
+      height: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: default;
+    }
+
+    .menu-icon span {
+      height: 4px;
+      border-radius: 2px;
+      background-color: #fff;
+      display: block;
+    }
+
+    /* Hero section */
+    .hero {
+      background-color: #007bff;
+      color: #fff;
+      text-align: center;
+      padding: 3rem 1rem 2.2rem 1rem;
+    }
+
+    .hero h1 {
+      font-size: 2.1rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .hero p {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin-bottom: 1.2rem;
+    }
+
+    .hero .user-bar {
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background-color: rgba(0, 0, 0, 0.12);
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+    }
+
+    .btn {
+      padding: 0.35rem 0.9rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      background-color: transparent;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Main content */
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem 3rem 1rem;
+    }
+
+    .content-card {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .content-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .content-header h2 {
+      margin: 0 auto;
+      font-size: 1.7rem;
+      text-align: center;
+      flex: 1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      flex: 1;
+      min-width: 210px;
+    }
+
+    .btn-secondary {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #0065cf;
+    }
+
+    .table-wrapper {
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      background-color: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    thead {
+      background-color: #222;
+      color: #fff;
+    }
+
+    th,
+    td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f3f3f3;
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+
+    tfoot td {
+      padding: 0.75rem 1rem;
+      text-align: center;
+      font-style: italic;
+      color: #555;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 1rem 0.5rem 1.4rem 0.5rem;
+      font-size: 0.9rem;
+      color: #555;
+      background-color: #f5f5f5;
+      border-top: 1px solid #ddd;
+    }
+
+    @media (max-width: 640px) {
+      .content-header {
+        flex-direction: column;
+      }
+
+      .content-header h2 {
+        order: -1;
+      }
+
+      .actions {
+        justify-content: center;
+      }
+
+      th,
+      td {
+        padding: 0.6rem 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h3>Logged in as: <span id="userEmail"></span></h3>
+  <header class="navbar">
+    <div class="brand">SmartAsset</div>
+    <div class="menu-icon">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
 
-  <button onclick="window.location.href='add.html'">Add</button>
-  <button onclick="alert('Approve function not yet implemented')">Approve</button>
+  <section class="hero">
+    <h1>Welcome to SmartAsset</h1>
+    <p>A smarter way to manage your IT assets</p>
+    <div class="user-bar">
+      <span class="pill">Logged in as: <span id="userEmail">Loading...</span></span>
+      <button id="logoutBtn" class="btn">Logout</button>
+    </div>
+  </section>
 
-  <h2>Asset List</h2>
-  <ul id="assetList"></ul>
+  <main>
+    <div class="content-card">
+      <div class="content-header">
+        <h2>Current Assets</h2>
+        <div class="actions">
+          <button id="addBtn" class="btn-secondary">Add Asset</button>
+          <button id="approveBtn" class="btn-secondary">Approve</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Asset ID</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Owner</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody">
+            <tr>
+              <td colspan="5">Loading assets...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 SmartAsset. All rights reserved.
+  </footer>
 
   <script type="module">
-    // Import Firebase libraries
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
       authDomain: "smartasset-d18c0.firebaseapp.com",
@@ -28,21 +294,88 @@
       appId: "1:345539034912:web:e8f8a36e317f37d090e145"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Check login state and user role
-    onAuthStateChanged(auth, async (user) => {
+    const userEmailSpan = document.getElementById("userEmail");
+    const tbody = document.getElementById("assetTableBody");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const addBtn = document.getElementById("addBtn");
+    const approveBtn = document.getElementById("approveBtn");
+
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.error("Logout error:", err);
+      } finally {
+        window.location.href = "login.html";
+      }
+    });
+
+    addBtn.addEventListener("click", () => {
+      window.location.href = "add.html";
+    });
+
+    approveBtn.addEventListener("click", () => {
+      alert("Approve function not yet implemented");
+    });
+
+    async function loadAssets() {
+      tbody.innerHTML =
+        '<tr><td colspan="5">Loading assets...</td></tr>';
+
+      try {
+        const q = query(collection(db, "assets"), orderBy("assetId"));
+        const snapshot = await getDocs(q);
+
+        tbody.innerHTML = "";
+
+        if (snapshot.empty) {
+          tbody.innerHTML =
+            '<tr><td colspan="5">No assets found.</td></tr>';
+          return;
+        }
+
+        snapshot.forEach((docSnap) => {
+          const asset = docSnap.data() || {};
+
+          // Support a few possible field names
+          const assetId = asset.assetId || asset.AssetID || asset.id || "";
+          const name =
+            asset.name || asset.assetName || asset.type || "Unknown";
+          const category = asset.category || asset.Category || "";
+          const owner = asset.owner || asset.Owner || "";
+          const status = asset.status || asset.Status || "";
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${assetId || "-"}</td>
+            <td>${name || "-"}</td>
+            <td>${category || "-"}</td>
+            <td>${owner || "-"}</td>
+            <td>${status || "-"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML =
+          '<tr><td colspan="5">Error loading assets.</td></tr>';
+        alert("Error loading assets: " + err.message);
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => {
       if (!user) {
         alert("You must be logged in.");
         window.location.href = "login.html";
         return;
       }
 
-      const email = user.email;
-      document.getElementById("userEmail").textContent = email;
+      const email = user.email || "";
+      userEmailSpan.textContent = email;
 
       if (email !== "admin@go-aheadsingapore.com") {
         alert("Access denied. Admin only.");
@@ -50,19 +383,7 @@
         return;
       }
 
-      // Load asset list
-      try {
-        const querySnapshot = await getDocs(collection(db, "assets"));
-        const assetList = document.getElementById("assetList");
-        querySnapshot.forEach((doc) => {
-          const asset = doc.data();
-          const li = document.createElement("li");
-          li.textContent = `${asset.type || "Unknown Type"} - ${asset.serialNumber || "No Serial"} - ${asset.status || "No Status"}`;
-          assetList.appendChild(li);
-        });
-      } catch (err) {
-        alert("Error loading assets: " + err.message);
-      }
+      loadAssets();
     });
   </script>
 </body>
