@@ -1,27 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - SmartAsset</title>
+  <title>SmartAsset - Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(to bottom, #0d47a1, #1976d2);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #222;
+    }
+
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .card h1 {
+      font-size: 1.7rem;
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+
+    .card p.subtitle {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.6rem 0.7rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      margin-bottom: 0.9rem;
+      font-size: 0.95rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.7rem;
+      border-radius: 4px;
+      border: none;
+      background-color: #1976d2;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 0.4rem;
+    }
+
+    button:hover {
+      background-color: #0f5cb7;
+    }
+
+    .error {
+      color: #c62828;
+      font-size: 0.85rem;
+      margin-top: 0.6rem;
+      min-height: 1.2em;
+    }
+
+    .note {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: #777;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <h1>Login</h1>
-  <form id="loginForm">
-    <label>Email: <input type="email" id="email" required></label><br><br>
-    <label>Password: <input type="password" id="password" required></label><br><br>
-    <button type="submit">Login</button>
-  </form>
+  <div class="card">
+    <h1>SmartAsset</h1>
+    <p class="subtitle">Admin login</p>
+
+    <label for="email">Email</label>
+    <input id="email" type="email" placeholder="admin@go-aheadsingapore.com" />
+
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="Enter your password" />
+
+    <button id="loginBtn">Login</button>
+
+    <div id="errorMsg" class="error"></div>
+
+    <p class="note">
+      Only admin accounts are allowed to access the dashboard.
+    </p>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
       authDomain: "smartasset-d18c0.firebaseapp.com",
       projectId: "smartasset-d18c0",
-      storageBucket: "smartasset-d18c0.appspot.com",
+      storageBucket: "smartasset-d18c0.firebasestorage.app",
       messagingSenderId: "345539034912",
       appId: "1:345539034912:web:e8f8a36e317f37d090e145"
     };
@@ -29,17 +131,48 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const errorMsg = document.getElementById("errorMsg");
+
+    loginBtn.addEventListener("click", async () => {
+      errorMsg.textContent = "";
+
+      const email = (emailInput.value || "").trim();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        errorMsg.textContent = "Please enter both email and password.";
+        return;
+      }
 
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        alert("Login successful!");
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+
+        if (cred.user.email !== "admin@go-aheadsingapore.com") {
+          errorMsg.textContent =
+            "This account is not allowed to access the admin dashboard.";
+          await signOut(auth);
+          return;
+        }
+
         window.location.href = "index.html";
-      } catch (error) {
-        alert("Login failed: " + error.message);
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = err.message;
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        return;
+      }
+
+      if (user.email === "admin@go-aheadsingapore.com") {
+        window.location.href = "index.html";
+      } else {
+        await signOut(auth);
       }
     });
   </script>
