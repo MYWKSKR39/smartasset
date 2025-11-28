@@ -33,3 +33,5 @@ This project demonstrates how practical web technologies and artificial intellig
 can be combined to create an inclusive, scalable solution for IT asset tracking in the
 public transport industry, with special attention to user-friendliness for a diverse
 workforce.
+
+https://mywkskr39.github.io/smartasset/
