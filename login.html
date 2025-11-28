@@ -10,7 +10,6 @@
       margin: 0;
       padding: 0;
     }
-
     body {
       font-family: Arial, Helvetica, sans-serif;
       background: linear-gradient(to bottom, #0d47a1, #1976d2);
@@ -20,7 +19,6 @@
       justify-content: center;
       color: #222;
     }
-
     .card {
       background-color: #fff;
       border-radius: 8px;
@@ -29,26 +27,22 @@
       max-width: 420px;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
     }
-
     .card h1 {
       font-size: 1.7rem;
       margin-bottom: 0.3rem;
       text-align: center;
     }
-
     .card p.subtitle {
       text-align: center;
       margin-bottom: 1.5rem;
       color: #666;
       font-size: 0.95rem;
     }
-
     label {
       display: block;
       margin-bottom: 0.25rem;
       font-size: 0.9rem;
     }
-
     input[type="email"],
     input[type="password"] {
       width: 100%;
@@ -58,7 +52,6 @@
       margin-bottom: 0.9rem;
       font-size: 0.95rem;
     }
-
     button {
       width: 100%;
       padding: 0.7rem;
@@ -70,18 +63,22 @@
       cursor: pointer;
       margin-top: 0.4rem;
     }
-
     button:hover {
       background-color: #0f5cb7;
     }
-
+    #resetBtn {
+      background-color: #fff;
+      color: #1976d2;
+      border: 1px solid #1976d2;
+    }
+    #resetBtn:hover {
+      background-color: #e3f2fd;
+    }
     .error {
-      color: #c62828;
       font-size: 0.85rem;
       margin-top: 0.6rem;
       min-height: 1.2em;
     }
-
     .note {
       margin-top: 1rem;
       font-size: 0.85rem;
@@ -102,6 +99,8 @@
     <input id="password" type="password" placeholder="Enter your password" />
 
     <button id="loginBtn">Login</button>
+    <!-- new button -->
+    <button id="resetBtn" type="button">Reset password</button>
 
     <div id="errorMsg" class="error"></div>
 
@@ -113,12 +112,12 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import {
-     getAuth,
-     signInWithEmailAndPassword,
-     onAuthStateChanged,
-     signOut,
-     sendPasswordResetEmail
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+      getAuth,
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut,
+      sendPasswordResetEmail   // added
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
@@ -135,16 +134,22 @@
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const loginBtn = document.getElementById("loginBtn");
+    const resetBtn = document.getElementById("resetBtn");
     const errorMsg = document.getElementById("errorMsg");
 
+    function setError(text, isSuccess = false) {
+      errorMsg.textContent = text;
+      errorMsg.style.color = isSuccess ? "#2e7d32" : "#c62828";
+    }
+
     loginBtn.addEventListener("click", async () => {
-      errorMsg.textContent = "";
+      setError("");
 
       const email = (emailInput.value || "").trim();
       const password = passwordInput.value;
 
       if (!email || !password) {
-        errorMsg.textContent = "Please enter both email and password.";
+        setError("Please enter both email and password.");
         return;
       }
 
@@ -152,8 +157,7 @@
         const cred = await signInWithEmailAndPassword(auth, email, password);
 
         if (cred.user.email !== "admin@go-aheadsingapore.com") {
-          errorMsg.textContent =
-            "This account is not allowed to access the admin dashboard.";
+          setError("This account is not allowed to access the admin dashboard.");
           await signOut(auth);
           return;
         }
@@ -161,7 +165,26 @@
         window.location.href = "index.html";
       } catch (err) {
         console.error(err);
-        errorMsg.textContent = err.message;
+        setError(err.message);
+      }
+    });
+
+    // new handler
+    resetBtn.addEventListener("click", async () => {
+      setError("");
+
+      const email = (emailInput.value || "").trim();
+      if (!email) {
+        setError("Enter your email above first.");
+        return;
+      }
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        setError("Password reset email sent if this account exists.", true);
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
       }
     });
 
@@ -169,7 +192,6 @@
       if (!user) {
         return;
       }
-
       if (user.email === "admin@go-aheadsingapore.com") {
         window.location.href = "index.html";
       } else {
