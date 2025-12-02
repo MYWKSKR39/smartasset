@@ -64,21 +64,51 @@
       padding:2rem 1rem 3rem 1rem;
     }
     .content-wrapper{
-      width:100%;max-width:900px;
+      width:100%;max-width:1100px;
       display:flex;flex-direction:column;
       gap:1.5rem;
+    }
+    .cards-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:1.5rem;
+    }
+    .card-half{
+      flex:1;
+      min-width:320px;
     }
     .content-card{
       background:#fff;
       border-radius:8px;
       box-shadow:0 2px 6px rgba(0,0,0,0.08);
       padding:1.3rem 1.4rem 1.6rem 1.4rem;
+      height:100%;
     }
-    .content-card h2{
-      margin-bottom:0.9rem;
-      font-size:1.4rem;
+    .content-header{
+      display:flex;align-items:center;
+      justify-content:space-between;
+      margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
     }
-    .table-wrapper{border-radius:4px;overflow:hidden}
+    .content-header h2{
+      margin:0;font-size:1.5rem;
+    }
+    .actions{
+      display:flex;gap:0.5rem;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .btn-secondary{
+      background:#007bff;color:#fff;border:none;
+      padding:0.4rem 0.9rem;
+      border-radius:4px;
+      font-size:0.9rem;
+      cursor:pointer;
+    }
+    .btn-secondary:hover{background:#0065cf}
+    .table-wrapper{
+      border-radius:4px;overflow:hidden;
+      background:#fff;
+    }
     table{
       width:100%;border-collapse:collapse;
       font-size:0.95rem;
@@ -135,7 +165,9 @@
       background:#f5f5f5;border-top:1px solid #ddd;
     }
     @media (max-width:640px){
+      .content-header{flex-direction:column;align-items:flex-start}
       th,td{padding:0.6rem 0.5rem}
+      .actions{width:100%;justify-content:flex-start}
     }
   </style>
 </head>
@@ -159,30 +191,63 @@
   <main>
     <div class="content-wrapper">
 
-      <!-- Assets list card -->
-      <section class="content-card">
-        <h2>Current Assets</h2>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Owner</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="assetTableBody">
-              <tr><td colspan="5">Loading assets...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <!-- first row: assets and my requests side by side -->
+      <div class="cards-row">
+        <!-- Current assets card -->
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Current Assets</h2>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="assetTableBody">
+                <tr><td colspan="5">Loading assets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <!-- Borrow request card -->
-      <section class="content-card">
-        <h2>Borrow request</h2>
+        <!-- My borrow requests card -->
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>My borrow requests</h2>
+            <div class="actions">
+              <button id="newRequestBtn" class="btn-secondary">New request</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Start date</th>
+                  <th>End date</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="myRequestsBody">
+                <tr><td colspan="5">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- borrow request form card, separate option -->
+      <section class="content-card" id="requestCard" style="display:none;">
+        <div class="content-header">
+          <h2>Borrow request</h2>
+        </div>
         <p style="font-size:0.9rem;margin-bottom:0.9rem;">
           Fill in this form to request to borrow an asset. The request will be sent to the administrator.
         </p>
@@ -212,27 +277,6 @@
           <button type="submit" class="btn-primary">Submit request</button>
           <div id="requestMessage" class="message"></div>
         </form>
-      </section>
-
-      <!-- My borrow requests card -->
-      <section class="content-card">
-        <h2>My borrow requests</h2>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th>
-                <th>Start date</th>
-                <th>End date</th>
-                <th>Reason</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="myRequestsBody">
-              <tr><td colspan="5">Loading requests...</td></tr>
-            </tbody>
-          </table>
-        </div>
       </section>
 
     </div>
@@ -278,6 +322,8 @@
     const myRequestsBody = document.getElementById("myRequestsBody");
     const logoutBtn = document.getElementById("logoutBtn");
 
+    const newRequestBtn = document.getElementById("newRequestBtn");
+    const requestCard = document.getElementById("requestCard");
     const requestForm = document.getElementById("requestForm");
     const reqAssetIdInput = document.getElementById("reqAssetId");
     const startDateInput = document.getElementById("startDate");
@@ -297,6 +343,19 @@
         console.error("Logout error:", err);
       }finally{
         window.location.href = "login.html";
+      }
+    });
+
+    // toggle request form visibility
+    let requestOpen = false;
+    newRequestBtn.addEventListener("click", () => {
+      requestOpen = !requestOpen;
+      requestCard.style.display = requestOpen ? "block" : "none";
+      newRequestBtn.textContent = requestOpen ? "Close form" : "New request";
+      if (requestOpen){
+        setRequestMessage("");
+        requestForm.reset();
+        endDateInput.min = "";
       }
     });
 
@@ -334,7 +393,7 @@
       }
     }
 
-    // keep end date on or after start date
+    // enforce end date not earlier than start date
     startDateInput.addEventListener("change", () => {
       if (!startDateInput.value){
         endDateInput.min = "";
@@ -385,15 +444,17 @@
         setRequestMessage("Request submitted to administrator.", true);
         requestForm.reset();
         endDateInput.min = "";
-        // refresh own requests list
+        // refresh list and hide form
         loadMyRequests(email);
+        requestOpen = false;
+        requestCard.style.display = "none";
+        newRequestBtn.textContent = "New request";
       }catch(err){
         console.error(err);
         setRequestMessage("Error submitting request: " + err.message);
       }
     });
 
-    // load only this employee requests
     async function loadMyRequests(email){
       myRequestsBody.innerHTML = '<tr><td colspan="5">Loading requests...</td></tr>';
       try{
@@ -447,8 +508,9 @@
       const email = user.email || "";
       userEmailSpan.textContent = email;
 
-      if (!email.endsWith("@go-aheadsingapore.com")) {
-        alert("Access denied.");
+      // block admin account from using employee page, reuse your rule as needed
+      if (email === "admin@go-aheadsingapore.com"){
+        alert("This page is for employees. Admin should use the dashboard.");
         await signOut(auth);
         window.location.href = "login.html";
         return;
