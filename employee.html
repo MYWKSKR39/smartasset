@@ -181,7 +181,7 @@
         <form id="requestForm">
           <div class="field-row">
             <label for="reqAssetId">Asset ID</label>
-            <input id="reqAssetId" type="text" placeholder="e.g. 001" required />
+            <input id="reqAssetId" type="text" placeholder="e.g. IT00354" required />
           </div>
 
           <div class="field-row" style="display:flex;gap:0.6rem;flex-wrap:wrap;">
@@ -302,12 +302,25 @@
       }
     }
 
+    // keep end date on or after start date
+    startDateInput.addEventListener("change", () => {
+      if (!startDateInput.value){
+        endDateInput.min = "";
+        return;
+      }
+      endDateInput.min = startDateInput.value;
+      if (endDateInput.value && endDateInput.value < startDateInput.value){
+        endDateInput.value = startDateInput.value;
+      }
+    });
+
     // handle borrow request submit
     requestForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       setRequestMessage("");
 
-      const assetId = reqAssetIdInput.value.trim();
+      const assetIdOriginal = reqAssetIdInput.value.trim();
+      const assetId = assetIdOriginal.toUpperCase();
       const startDate = startDateInput.value;
       const endDate = endDateInput.value;
       const reason = reasonInput.value.trim();
@@ -327,7 +340,8 @@
 
       try{
         await addDoc(collection(db, "borrowRequests"), {
-          assetId,
+          assetId,          // normalized uppercase
+          assetIdOriginal,  // what user typed
           startDate,
           endDate,
           reason,
@@ -338,6 +352,7 @@
 
         setRequestMessage("Request submitted to administrator.", true);
         requestForm.reset();
+        endDateInput.min = ""; // clear min after reset
       }catch(err){
         console.error(err);
         setRequestMessage("Error submitting request: " + err.message);
