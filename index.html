@@ -64,7 +64,7 @@
       padding:2rem 1rem 3rem 1rem;
     }
     .content-wrapper{
-      width:100%;max-width:1100px;
+      width:100%;max-width:1200px;
       display:flex;flex-direction:column;
       gap:1.5rem;
     }
@@ -72,10 +72,11 @@
       display:flex;
       flex-wrap:wrap;
       gap:1.5rem;
+      justify-content:center;
     }
     .card-half{
       flex:1;
-      min-width:320px;
+      min-width:550px;  /* wider white boxes */
     }
     .content-card{
       background:#fff;
@@ -107,8 +108,8 @@
     .btn-secondary:hover{background:#0065cf}
     .table-wrapper{
       border-radius:4px;
-      overflow-x:auto;   /* fix clipped buttons */
-      overflow-y:hidden;
+      overflow-x:visible;   /* no horizontal slider */
+      overflow-y:visible;
       background:#fff;
     }
     table{
@@ -151,6 +152,7 @@
       .content-header{flex-direction:column;align-items:flex-start}
       th,td{padding:0.6rem 0.5rem}
       .actions{width:100%;justify-content:flex-start}
+      .card-half{min-width:100%}
     }
   </style>
 </head>
@@ -461,7 +463,7 @@
     onAuthStateChanged(auth, async (user) => {
       if (!user){
         window.location.href = "login.html";
-      return;
+        return;
       }
       if (user.email !== "admin@go-aheadsingapore.com"){
         alert("Access denied. Admin only.");
