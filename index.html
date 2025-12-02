@@ -408,12 +408,13 @@
       }
     }
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        alert("You must be logged in.");
-        window.location.href = "login.html";
-        return;
-      }
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    await signOut(auth);   // make sure no session remains in memory
+    window.location.href = "login.html";
+    return;
+  }
+
 
       const email = user.email || "";
       userEmailSpan.textContent = email;
@@ -429,3 +430,4 @@
   </script>
 </body>
 </html>
+
