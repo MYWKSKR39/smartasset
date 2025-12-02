@@ -286,12 +286,12 @@
       window.location.href = "add.html";
     });
 
-    // click events on asset table - edit and delete
+    // asset table clicks: edit and delete
     assetTbody.addEventListener("click", async (event) => {
       const deleteBtn = event.target.closest(".btn-delete");
       const editBtn = event.target.closest(".btn-edit");
 
-      // delete branch
+      // delete
       if (deleteBtn){
         const id = deleteBtn.getAttribute("data-id");
         if (!id) return;
@@ -308,7 +308,7 @@
         return;
       }
 
-      // edit branch
+      // edit: only owner and status
       if (editBtn){
         const id = editBtn.getAttribute("data-id");
         if (!id) return;
@@ -316,42 +316,31 @@
         const row = editBtn.closest("tr");
         if (!row) return;
 
-        const currentAssetId = row.children[0].textContent.trim();
-        const currentName = row.children[1].textContent.trim();
-        const currentCategory = row.children[2].textContent.trim();
         const currentOwner = row.children[3].textContent.trim();
         const currentStatus = row.children[4].textContent.trim();
-
-        const newAssetId = window.prompt("Asset ID", currentAssetId);
-        if (newAssetId === null) return;
-
-        const newName = window.prompt("Asset name", currentName);
-        if (newName === null) return;
-
-        const newCategory = window.prompt("Category", currentCategory);
-        if (newCategory === null) return;
 
         const newOwner = window.prompt("Owner", currentOwner);
         if (newOwner === null) return;
 
-        const newStatus = window.prompt("Status", currentStatus);
-        if (newStatus === null) return;
+        const allowedStatuses = ["Available","In Use","Maintenance","Retired"];
+        const statusPromptText = "Status (Available / In Use / Maintenance / Retired)";
+        let statusInput = window.prompt(statusPromptText, currentStatus);
+        if (statusInput === null) return;
+
+        statusInput = statusInput.trim();
+        const matchedStatus = allowedStatuses.find(
+          s => s.toLowerCase() === statusInput.toLowerCase()
+        );
+        const finalStatus = matchedStatus || currentStatus;
 
         try{
           await updateDoc(doc(db, "assets", id), {
-            assetId: newAssetId.trim(),
-            name: newName.trim(),
-            category: newCategory.trim(),
             owner: newOwner.trim(),
-            status: newStatus.trim()
+            status: finalStatus
           });
 
-          // update row in table
-          row.children[0].textContent = newAssetId.trim();
-          row.children[1].textContent = newName.trim();
-          row.children[2].textContent = newCategory.trim();
           row.children[3].textContent = newOwner.trim();
-          row.children[4].textContent = newStatus.trim();
+          row.children[4].textContent = finalStatus;
         }catch(err){
           console.error(err);
           alert("Error updating asset: " + err.message);
@@ -397,7 +386,6 @@
       }
     }
 
-    // load borrow requests
     async function loadRequests(){
       requestTbody.innerHTML = '<tr><td colspan="7">Loading requests...</td></tr>';
       try{
@@ -445,7 +433,6 @@
       }
     }
 
-    // handle approve and reject
     requestTbody.addEventListener("click", async (event) => {
       const approveButton = event.target.closest(".btn-approve");
       const rejectButton = event.target.closest(".btn-reject");
