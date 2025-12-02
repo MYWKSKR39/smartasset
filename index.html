@@ -106,7 +106,9 @@
     }
     .btn-secondary:hover{background:#0065cf}
     .table-wrapper{
-      border-radius:4px;overflow:hidden;
+      border-radius:4px;
+      overflow-x:auto;   /* fix clipped buttons */
+      overflow-y:hidden;
       background:#fff;
     }
     table{
@@ -405,7 +407,7 @@
           const startDate = r.startDate || "";
           const endDate = r.endDate || "";
           const reason = r.reason || "";
-          const status = (r.status || "Pending");
+          const status = r.status || "Pending";
 
           let statusClass = "status-pending";
           if (status.toLowerCase() === "approved") statusClass = "status-approved";
@@ -459,7 +461,7 @@
     onAuthStateChanged(auth, async (user) => {
       if (!user){
         window.location.href = "login.html";
-        return;
+      return;
       }
       if (user.email !== "admin@go-aheadsingapore.com"){
         alert("Access denied. Admin only.");
