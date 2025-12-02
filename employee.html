@@ -63,22 +63,22 @@
       justify-content:center;
       padding:2rem 1rem 3rem 1rem;
     }
-    .content-card{width:100%;max-width:900px}
-    .content-header{
-      display:flex;align-items:center;
-      justify-content:center;
-      margin-bottom:1rem;
-      flex-wrap:wrap;gap:0.75rem;
+    .content-wrapper{
+      width:100%;max-width:900px;
+      display:flex;flex-direction:column;
+      gap:1.5rem;
     }
-    .content-header h2{
-      margin:0;font-size:1.7rem;
-      text-align:center;
-    }
-    .table-wrapper{
-      border-radius:4px;overflow:hidden;
-      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+    .content-card{
       background:#fff;
+      border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      padding:1.3rem 1.4rem 1.6rem 1.4rem;
     }
+    .content-card h2{
+      margin-bottom:0.9rem;
+      font-size:1.4rem;
+    }
+    .table-wrapper{border-radius:4px;overflow:hidden}
     table{
       width:100%;border-collapse:collapse;
       font-size:0.95rem;
@@ -87,6 +87,38 @@
     th,td{padding:0.75rem 1rem;text-align:left}
     tbody tr:nth-child(even){background:#f3f3f3}
     tbody tr:nth-child(odd){background:#fff}
+    .field-row{margin-bottom:0.8rem}
+    label{
+      display:block;
+      font-size:0.9rem;
+      margin-bottom:0.2rem;
+    }
+    input,textarea{
+      width:100%;
+      padding:0.55rem 0.7rem;
+      border-radius:4px;
+      border:1px solid #ccc;
+      font-size:0.95rem;
+    }
+    textarea{
+      resize:vertical;
+      min-height:70px;
+    }
+    .btn-primary{
+      background:#007bff;
+      color:#fff;
+      border:none;
+      padding:0.6rem 1.2rem;
+      font-size:0.95rem;
+      cursor:pointer;
+      border-radius:4px;
+    }
+    .btn-primary:hover{background:#0065cf}
+    .message{
+      margin-top:0.6rem;
+      font-size:0.9rem;
+      min-height:1.2em;
+    }
     footer{
       text-align:center;
       padding:1rem 0.5rem 1.4rem 0.5rem;
@@ -108,7 +140,7 @@
 
   <section class="hero">
     <h1>SmartAsset</h1>
-    <p>View IT assets assigned in the organisation</p>
+    <p>View IT assets and submit borrow requests</p>
     <div class="user-bar">
       <span class="pill">Logged in as: <span id="userEmail">Loading...</span></span>
       <button id="logoutBtn" class="btn">Logout</button>
@@ -116,27 +148,63 @@
   </section>
 
   <main>
-    <div class="content-card">
-      <div class="content-header">
-        <h2>Current Assets</h2>
-      </div>
+    <div class="content-wrapper">
 
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Asset ID</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Owner</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="assetTableBody">
-            <tr><td colspan="5">Loading assets...</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- Assets list card -->
+      <section class="content-card">
+        <h2>Current Assets</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Owner</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody">
+              <tr><td colspan="5">Loading assets...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Borrow request card -->
+      <section class="content-card">
+        <h2>Borrow request</h2>
+        <p style="font-size:0.9rem;margin-bottom:0.9rem;">
+          Fill in this form to request to borrow an asset. The request will be sent to the administrator.
+        </p>
+
+        <form id="requestForm">
+          <div class="field-row">
+            <label for="reqAssetId">Asset ID</label>
+            <input id="reqAssetId" type="text" placeholder="e.g. 001" required />
+          </div>
+
+          <div class="field-row" style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;">
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date" required />
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label for="endDate">End date</label>
+              <input id="endDate" type="date" required />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="reason">Reason or notes</label>
+            <textarea id="reason" placeholder="Why do you need this asset?" required></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary">Submit request</button>
+          <div id="requestMessage" class="message"></div>
+        </form>
+      </section>
+
     </div>
   </main>
 
@@ -156,7 +224,9 @@
       collection,
       getDocs,
       query,
-      orderBy
+      orderBy,
+      addDoc,
+      serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -175,6 +245,18 @@
     const userEmailSpan = document.getElementById("userEmail");
     const tbody = document.getElementById("assetTableBody");
     const logoutBtn = document.getElementById("logoutBtn");
+
+    const requestForm = document.getElementById("requestForm");
+    const reqAssetIdInput = document.getElementById("reqAssetId");
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const reasonInput = document.getElementById("reason");
+    const requestMessageDiv = document.getElementById("requestMessage");
+
+    function setRequestMessage(text, ok = false){
+      requestMessageDiv.textContent = text;
+      requestMessageDiv.style.color = ok ? "#2e7d32" : "#c62828";
+    }
 
     logoutBtn.addEventListener("click", async () => {
       try{
@@ -220,6 +302,48 @@
       }
     }
 
+    // handle borrow request submit
+    requestForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setRequestMessage("");
+
+      const assetId = reqAssetIdInput.value.trim();
+      const startDate = startDateInput.value;
+      const endDate = endDateInput.value;
+      const reason = reasonInput.value.trim();
+
+      if (!assetId || !startDate || !endDate || !reason){
+        setRequestMessage("Please fill in all fields.");
+        return;
+      }
+
+      if (endDate < startDate){
+        setRequestMessage("End date cannot be earlier than start date.");
+        return;
+      }
+
+      const user = auth.currentUser;
+      const email = user ? user.email : "";
+
+      try{
+        await addDoc(collection(db, "borrowRequests"), {
+          assetId,
+          startDate,
+          endDate,
+          reason,
+          requestedBy: email,
+          status: "Pending",
+          createdAt: serverTimestamp()
+        });
+
+        setRequestMessage("Request submitted to administrator.", true);
+        requestForm.reset();
+      }catch(err){
+        console.error(err);
+        setRequestMessage("Error submitting request: " + err.message);
+      }
+    });
+
     onAuthStateChanged(auth, async (user) => {
       if (!user){
         window.location.href = "login.html";
@@ -229,7 +353,6 @@
       const email = user.email || "";
       userEmailSpan.textContent = email;
 
-      // optional: only allow your company domain
       if (!email.endsWith("@go-aheadsingapore.com")) {
         alert("Access denied.");
         await signOut(auth);
