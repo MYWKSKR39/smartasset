@@ -5,220 +5,113 @@
   <title>SmartAsset - Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Arial,Helvetica,sans-serif;
+      background-color:#f5f7fb;
+      color:#222;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
     }
-
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background-color: #f5f7fb;
-      color: #222;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+    .navbar{
+      background:#222;
+      color:#fff;
+      padding:0.7rem 1.5rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
     }
-
-    .navbar {
-      background-color: #222;
-      color: #fff;
-      padding: 0.7rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .navbar .brand{font-size:1.2rem;font-weight:bold}
+    .menu-icon{
+      width:32px;height:26px;
+      display:flex;flex-direction:column;
+      justify-content:space-between;
     }
-
-    .navbar .brand {
-      font-size: 1.2rem;
-      font-weight: bold;
+    .menu-icon span{
+      height:4px;border-radius:2px;
+      background:#fff;display:block;
     }
-
-    .menu-icon {
-      width: 32px;
-      height: 26px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      cursor: default;
+    .hero{
+      background:#007bff;color:#fff;
+      text-align:center;
+      padding:3rem 1rem 2.2rem 1rem;
     }
-
-    .menu-icon span {
-      height: 4px;
-      border-radius: 2px;
-      background-color: #fff;
-      display: block;
+    .hero h1{font-size:2.1rem;margin-bottom:0.6rem}
+    .hero p{font-size:1rem;opacity:0.9;margin-bottom:1.2rem}
+    .hero .user-bar{
+      margin-top:0.5rem;font-size:0.95rem;
+      display:flex;gap:0.75rem;align-items:center;
+      justify-content:center;flex-wrap:wrap;
     }
-
-    .hero {
-      background-color: #007bff;
-      color: #fff;
-      text-align: center;
-      padding: 3rem 1rem 2.2rem 1rem;
+    .pill{
+      background:rgba(0,0,0,0.12);
+      padding:0.25rem 0.7rem;border-radius:999px;
     }
-
-    .hero h1 {
-      font-size: 2.1rem;
-      margin-bottom: 0.6rem;
+    .btn{
+      padding:0.35rem 0.9rem;
+      border-radius:4px;
+      font-size:0.9rem;
+      border:1px solid rgba(255,255,255,0.7);
+      background:transparent;
+      color:#fff;
+      cursor:pointer;
     }
-
-    .hero p {
-      font-size: 1rem;
-      opacity: 0.9;
-      margin-bottom: 1.2rem;
+    .btn:hover{background:rgba(255,255,255,0.12)}
+    main{
+      flex:1;display:flex;
+      justify-content:center;
+      padding:2rem 1rem 3rem 1rem;
     }
-
-    .hero .user-bar {
-      margin-top: 0.5rem;
-      font-size: 0.95rem;
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
+    .content-card{width:100%;max-width:900px}
+    .content-header{
+      display:flex;align-items:center;
+      justify-content:space-between;
+      margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
     }
-
-    .pill {
-      background-color: rgba(0, 0, 0, 0.12);
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
+    .content-header h2{
+      margin:0 auto;font-size:1.7rem;
+      text-align:center;flex:1;
     }
-
-    .btn {
-      padding: 0.35rem 0.9rem;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      background-color: transparent;
-      color: #fff;
-      cursor: pointer;
+    .actions{
+      display:flex;gap:0.5rem;
+      justify-content:flex-end;
+      flex:1;min-width:230px;
     }
-
-    .btn:hover {
-      background-color: rgba(255, 255, 255, 0.12);
+    .btn-secondary{
+      background:#007bff;color:#fff;border:none;
     }
-
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      padding: 2rem 1rem 3rem 1rem;
+    .btn-secondary:hover{background:#0065cf}
+    .table-wrapper{
+      border-radius:4px;overflow:hidden;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      background:#fff;
     }
-
-    .content-card {
-      width: 100%;
-      max-width: 900px;
+    table{
+      width:100%;border-collapse:collapse;
+      font-size:0.95rem;
     }
-
-    .content-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      gap: 0.75rem;
+    thead{background:#222;color:#fff}
+    th,td{padding:0.75rem 1rem;text-align:left}
+    tbody tr:nth-child(even){background:#f3f3f3}
+    tbody tr:nth-child(odd){background:#fff}
+    .btn-table{
+      font-size:0.85rem;padding:0.25rem 0.6rem;
+      border-radius:4px;border:none;cursor:pointer;
     }
-
-    .content-header h2 {
-      margin: 0 auto;
-      font-size: 1.7rem;
-      text-align: center;
-      flex: 1;
+    .btn-delete{background:#e53935;color:#fff}
+    .btn-delete:hover{background:#c62828}
+    footer{
+      text-align:center;
+      padding:1rem 0.5rem 1.4rem 0.5rem;
+      font-size:0.9rem;color:#555;
+      background:#f5f5f5;border-top:1px solid #ddd;
     }
-
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: flex-end;
-      flex: 1;
-      min-width: 230px;
-    }
-
-    .btn-secondary {
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-    }
-
-    .btn-secondary:hover {
-      background-color: #0065cf;
-    }
-
-    .table-wrapper {
-      border-radius: 4px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-      background-color: #fff;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-
-    thead {
-      background-color: #222;
-      color: #fff;
-    }
-
-    th,
-    td {
-      padding: 0.75rem 1rem;
-      text-align: left;
-    }
-
-    tbody tr:nth-child(even) {
-      background-color: #f3f3f3;
-    }
-
-    tbody tr:nth-child(odd) {
-      background-color: #ffffff;
-    }
-
-    .btn-table {
-      font-size: 0.85rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-delete {
-      background-color: #e53935;
-      color: #fff;
-    }
-
-    .btn-delete:hover {
-      background-color: #c62828;
-    }
-
-    footer {
-      text-align: center;
-      padding: 1rem 0.5rem 1.4rem 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
-      background-color: #f5f5f5;
-      border-top: 1px solid #ddd;
-    }
-
-    @media (max-width: 640px) {
-      .content-header {
-        flex-direction: column;
-      }
-
-      .content-header h2 {
-        order: -1;
-      }
-
-      .actions {
-        justify-content: center;
-      }
-
-      th,
-      td {
-        padding: 0.6rem 0.5rem;
-      }
+    @media (max-width:640px){
+      .content-header{flex-direction:column}
+      .content-header h2{order:-1}
+      .actions{justify-content:center}
+      th,td{padding:0.6rem 0.5rem}
     }
   </style>
 </head>
@@ -226,9 +119,7 @@
   <header class="navbar">
     <div class="brand">SmartAsset</div>
     <div class="menu-icon">
-      <span></span>
-      <span></span>
-      <span></span>
+      <span></span><span></span><span></span>
     </div>
   </header>
 
@@ -264,9 +155,7 @@
             </tr>
           </thead>
           <tbody id="assetTableBody">
-            <tr>
-              <td colspan="6">Loading assets...</td>
-            </tr>
+            <tr><td colspan="6">Loading assets...</td></tr>
           </tbody>
         </table>
       </div>
@@ -314,11 +203,11 @@
     const approveBtn = document.getElementById("approveBtn");
 
     logoutBtn.addEventListener("click", async () => {
-      try {
+      try{
         await signOut(auth);
-      } catch (err) {
+      }catch(err){
         console.error("Logout error:", err);
-      } finally {
+      }finally{
         window.location.href = "login.html";
       }
     });
@@ -333,58 +222,39 @@
 
     tbody.addEventListener("click", async (event) => {
       const btn = event.target.closest(".btn-delete");
-      if (!btn) {
-        return;
-      }
-
+      if (!btn) return;
       const id = btn.getAttribute("data-id");
-      if (!id) {
-        return;
-      }
+      if (!id) return;
 
-      const confirmed = window.confirm("Remove this asset?");
-      if (!confirmed) {
-        return;
-      }
+      if (!window.confirm("Remove this asset?")) return;
 
-      try {
+      try{
         await deleteDoc(doc(db, "assets", id));
         const row = btn.closest("tr");
-        if (row) {
-          row.remove();
-        }
-      } catch (err) {
+        if (row) row.remove();
+      }catch(err){
         console.error(err);
         alert("Error removing asset: " + err.message);
       }
     });
 
-    async function loadAssets() {
-      tbody.innerHTML =
-        '<tr><td colspan="6">Loading assets...</td></tr>';
-
-      try {
+    async function loadAssets(){
+      tbody.innerHTML = '<tr><td colspan="6">Loading assets...</td></tr>';
+      try{
         const q = query(collection(db, "assets"), orderBy("assetId"));
         const snapshot = await getDocs(q);
-
         tbody.innerHTML = "";
-
-        if (snapshot.empty) {
-          tbody.innerHTML =
-            '<tr><td colspan="6">No assets found.</td></tr>';
+        if (snapshot.empty){
+          tbody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
           return;
         }
-
         snapshot.forEach((docSnap) => {
           const asset = docSnap.data() || {};
-
           const assetId = asset.assetId || asset.AssetID || asset.id || "";
-          const name =
-            asset.name || asset.assetName || asset.type || "Unknown";
+          const name = asset.name || asset.assetName || asset.type || "Unknown";
           const category = asset.category || asset.Category || "";
           const owner = asset.owner || asset.Owner || "";
           const status = asset.status || asset.Status || "";
-
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${assetId || "-"}</td>
@@ -393,41 +263,32 @@
             <td>${owner || "-"}</td>
             <td>${status || "-"}</td>
             <td>
-              <button class="btn-table btn-delete" data-id="${docSnap.id}">
-                Remove
-              </button>
+              <button class="btn-table btn-delete" data-id="${docSnap.id}">Remove</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
-      } catch (err) {
+      }catch(err){
         console.error(err);
-        tbody.innerHTML =
-          '<tr><td colspan="6">Error loading assets.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Error loading assets.</td></tr>';
         alert("Error loading assets: " + err.message);
       }
     }
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    await signOut(auth);   // make sure no session remains in memory
-    window.location.href = "login.html";
-    return;
-  }
-
-
-      const email = user.email || "";
-      userEmailSpan.textContent = email;
-
-      if (email !== "admin@go-aheadsingapore.com") {
-        alert("Access denied. Admin only.");
+    onAuthStateChanged(auth, async (user) => {
+      if (!user){
         window.location.href = "login.html";
         return;
       }
-
+      if (user.email !== "admin@go-aheadsingapore.com"){
+        alert("Access denied. Admin only.");
+        await signOut(auth);
+        window.location.href = "login.html";
+        return;
+      }
+      userEmailSpan.textContent = user.email || "";
       loadAssets();
     });
   </script>
 </body>
 </html>
-
