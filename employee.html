@@ -119,6 +119,15 @@
       font-size:0.9rem;
       min-height:1.2em;
     }
+    .status-chip{
+      padding:0.15rem 0.5rem;
+      border-radius:999px;
+      font-size:0.8rem;
+      display:inline-block;
+    }
+    .status-pending{background:#fff3cd;color:#856404}
+    .status-approved{background:#e8f5e9;color:#2e7d32}
+    .status-rejected{background:#ffebee;color:#c62828}
     footer{
       text-align:center;
       padding:1rem 0.5rem 1.4rem 0.5rem;
@@ -205,6 +214,27 @@
         </form>
       </section>
 
+      <!-- My borrow requests card -->
+      <section class="content-card">
+        <h2>My borrow requests</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Reason</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="myRequestsBody">
+              <tr><td colspan="5">Loading requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -226,7 +256,8 @@
       query,
       orderBy,
       addDoc,
-      serverTimestamp
+      serverTimestamp,
+      where
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -243,7 +274,8 @@
     const db = getFirestore(app);
 
     const userEmailSpan = document.getElementById("userEmail");
-    const tbody = document.getElementById("assetTableBody");
+    const assetTbody = document.getElementById("assetTableBody");
+    const myRequestsBody = document.getElementById("myRequestsBody");
     const logoutBtn = document.getElementById("logoutBtn");
 
     const requestForm = document.getElementById("requestForm");
@@ -269,13 +301,13 @@
     });
 
     async function loadAssets(){
-      tbody.innerHTML = '<tr><td colspan="5">Loading assets...</td></tr>';
+      assetTbody.innerHTML = '<tr><td colspan="5">Loading assets...</td></tr>';
       try{
-        const q = query(collection(db, "assets"), orderBy("assetId"));
-        const snapshot = await getDocs(q);
-        tbody.innerHTML = "";
+        const qAssets = query(collection(db, "assets"), orderBy("assetId"));
+        const snapshot = await getDocs(qAssets);
+        assetTbody.innerHTML = "";
         if (snapshot.empty){
-          tbody.innerHTML = '<tr><td colspan="5">No assets found.</td></tr>';
+          assetTbody.innerHTML = '<tr><td colspan="5">No assets found.</td></tr>';
           return;
         }
         snapshot.forEach((docSnap) => {
@@ -293,11 +325,11 @@
             <td>${owner || "-"}</td>
             <td>${status || "-"}</td>
           `;
-          tbody.appendChild(tr);
+          assetTbody.appendChild(tr);
         });
       }catch(err){
         console.error(err);
-        tbody.innerHTML = '<tr><td colspan="5">Error loading assets.</td></tr>';
+        assetTbody.innerHTML = '<tr><td colspan="5">Error loading assets.</td></tr>';
         alert("Error loading assets: " + err.message);
       }
     }
@@ -314,7 +346,7 @@
       }
     });
 
-    // handle borrow request submit
+    // submit borrow request
     requestForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       setRequestMessage("");
@@ -340,8 +372,8 @@
 
       try{
         await addDoc(collection(db, "borrowRequests"), {
-          assetId,          // normalized uppercase
-          assetIdOriginal,  // what user typed
+          assetId,
+          assetIdOriginal,
           startDate,
           endDate,
           reason,
@@ -352,12 +384,59 @@
 
         setRequestMessage("Request submitted to administrator.", true);
         requestForm.reset();
-        endDateInput.min = ""; // clear min after reset
+        endDateInput.min = "";
+        // refresh own requests list
+        loadMyRequests(email);
       }catch(err){
         console.error(err);
         setRequestMessage("Error submitting request: " + err.message);
       }
     });
+
+    // load only this employee requests
+    async function loadMyRequests(email){
+      myRequestsBody.innerHTML = '<tr><td colspan="5">Loading requests...</td></tr>';
+      try{
+        const qReq = query(
+          collection(db, "borrowRequests"),
+          where("requestedBy", "==", email),
+          orderBy("createdAt", "desc")
+        );
+        const snapshot = await getDocs(qReq);
+        myRequestsBody.innerHTML = "";
+        if (snapshot.empty){
+          myRequestsBody.innerHTML = '<tr><td colspan="5">No requests yet.</td></tr>';
+          return;
+        }
+        snapshot.forEach((docSnap) => {
+          const r = docSnap.data() || {};
+          const assetId = r.assetId || "";
+          const startDate = r.startDate || "";
+          const endDate = r.endDate || "";
+          const reason = r.reason || "";
+          const status = r.status || "Pending";
+
+          let statusClass = "status-pending";
+          const lower = status.toLowerCase();
+          if (lower === "approved") statusClass = "status-approved";
+          else if (lower === "rejected") statusClass = "status-rejected";
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${assetId || "-"}</td>
+            <td>${startDate || "-"}</td>
+            <td>${endDate || "-"}</td>
+            <td>${reason || "-"}</td>
+            <td><span class="status-chip ${statusClass}">${status}</span></td>
+          `;
+          myRequestsBody.appendChild(tr);
+        });
+      }catch(err){
+        console.error(err);
+        myRequestsBody.innerHTML = '<tr><td colspan="5">Error loading requests.</td></tr>';
+        alert("Error loading requests: " + err.message);
+      }
+    }
 
     onAuthStateChanged(auth, async (user) => {
       if (!user){
@@ -376,6 +455,7 @@
       }
 
       loadAssets();
+      loadMyRequests(email);
     });
   </script>
 </body>
