@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SmartAsset - Employee View</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Arial,Helvetica,sans-serif;
+      background-color:#f5f7fb;
+      color:#222;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .navbar{
+      background:#222;
+      color:#fff;
+      padding:0.7rem 1.5rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .navbar .brand{font-size:1.2rem;font-weight:bold}
+    .menu-icon{
+      width:32px;height:26px;
+      display:flex;flex-direction:column;
+      justify-content:space-between;
+    }
+    .menu-icon span{
+      height:4px;border-radius:2px;
+      background:#fff;display:block;
+    }
+    .hero{
+      background:#007bff;color:#fff;
+      text-align:center;
+      padding:3rem 1rem 2.2rem 1rem;
+    }
+    .hero h1{font-size:2.1rem;margin-bottom:0.6rem}
+    .hero p{font-size:1rem;opacity:0.9;margin-bottom:1.2rem}
+    .hero .user-bar{
+      margin-top:0.5rem;font-size:0.95rem;
+      display:flex;gap:0.75rem;align-items:center;
+      justify-content:center;flex-wrap:wrap;
+    }
+    .pill{
+      background:rgba(0,0,0,0.12);
+      padding:0.25rem 0.7rem;border-radius:999px;
+    }
+    .btn{
+      padding:0.35rem 0.9rem;
+      border-radius:4px;
+      font-size:0.9rem;
+      border:1px solid rgba(255,255,255,0.7);
+      background:transparent;
+      color:#fff;
+      cursor:pointer;
+    }
+    .btn:hover{background:rgba(255,255,255,0.12)}
+    main{
+      flex:1;display:flex;
+      justify-content:center;
+      padding:2rem 1rem 3rem 1rem;
+    }
+    .content-card{width:100%;max-width:900px}
+    .content-header{
+      display:flex;align-items:center;
+      justify-content:center;
+      margin-bottom:1rem;
+      flex-wrap:wrap;gap:0.75rem;
+    }
+    .content-header h2{
+      margin:0;font-size:1.7rem;
+      text-align:center;
+    }
+    .table-wrapper{
+      border-radius:4px;overflow:hidden;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      background:#fff;
+    }
+    table{
+      width:100%;border-collapse:collapse;
+      font-size:0.95rem;
+    }
+    thead{background:#222;color:#fff}
+    th,td{padding:0.75rem 1rem;text-align:left}
+    tbody tr:nth-child(even){background:#f3f3f3}
+    tbody tr:nth-child(odd){background:#fff}
+    footer{
+      text-align:center;
+      padding:1rem 0.5rem 1.4rem 0.5rem;
+      font-size:0.9rem;color:#555;
+      background:#f5f5f5;border-top:1px solid #ddd;
+    }
+    @media (max-width:640px){
+      th,td{padding:0.6rem 0.5rem}
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="brand">SmartAsset</div>
+    <div class="menu-icon">
+      <span></span><span></span><span></span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>SmartAsset</h1>
+    <p>View IT assets assigned in the organisation</p>
+    <div class="user-bar">
+      <span class="pill">Logged in as: <span id="userEmail">Loading...</span></span>
+      <button id="logoutBtn" class="btn">Logout</button>
+    </div>
+  </section>
+
+  <main>
+    <div class="content-card">
+      <div class="content-header">
+        <h2>Current Assets</h2>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Asset ID</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Owner</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody">
+            <tr><td colspan="5">Loading assets...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 SmartAsset. All rights reserved.
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
+      authDomain: "smartasset-d18c0.firebaseapp.com",
+      projectId: "smartasset-d18c0",
+      storageBucket: "smartasset-d18c0.firebasestorage.app",
+      messagingSenderId: "345539034912",
+      appId: "1:345539034912:web:e8f8a36e317f37d090e145"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const userEmailSpan = document.getElementById("userEmail");
+    const tbody = document.getElementById("assetTableBody");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", async () => {
+      try{
+        await signOut(auth);
+      }catch(err){
+        console.error("Logout error:", err);
+      }finally{
+        window.location.href = "login.html";
+      }
+    });
+
+    async function loadAssets(){
+      tbody.innerHTML = '<tr><td colspan="5">Loading assets...</td></tr>';
+      try{
+        const q = query(collection(db, "assets"), orderBy("assetId"));
+        const snapshot = await getDocs(q);
+        tbody.innerHTML = "";
+        if (snapshot.empty){
+          tbody.innerHTML = '<tr><td colspan="5">No assets found.</td></tr>';
+          return;
+        }
+        snapshot.forEach((docSnap) => {
+          const asset = docSnap.data() || {};
+          const assetId = asset.assetId || asset.AssetID || asset.id || "";
+          const name = asset.name || asset.assetName || asset.type || "Unknown";
+          const category = asset.category || asset.Category || "";
+          const owner = asset.owner || asset.Owner || "";
+          const status = asset.status || asset.Status || "";
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${assetId || "-"}</td>
+            <td>${name || "-"}</td>
+            <td>${category || "-"}</td>
+            <td>${owner || "-"}</td>
+            <td>${status || "-"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }catch(err){
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="5">Error loading assets.</td></tr>';
+        alert("Error loading assets: " + err.message);
+      }
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user){
+        window.location.href = "login.html";
+        return;
+      }
+
+      const email = user.email || "";
+      userEmailSpan.textContent = email;
+
+      // optional: only allow your company domain
+      if (!email.endsWith("@go-aheadsingapore.com")) {
+        alert("Access denied.");
+        await signOut(auth);
+        window.location.href = "login.html";
+        return;
+      }
+
+      loadAssets();
+    });
+  </script>
+</body>
+</html>
