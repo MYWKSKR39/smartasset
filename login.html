@@ -142,16 +142,25 @@
       }
 
       try{
-        const cred = await signInWithEmailAndPassword(auth, email, password);
+const cred = await signInWithEmailAndPassword(auth, email, password);
+const userEmail = cred.user.email || "";
 
-        // only allow admin account
-        if (cred.user.email !== "admin@go-aheadsingapore.com"){
-          showMessage("This account is not allowed to access the admin dashboard.");
-          await signOut(auth);
-          return;
-        }
+// admin account
+if (userEmail === "admin@go-aheadsingapore.com") {
+  window.location.href = "index.html";        // admin dashboard
+  return;
+}
 
-        window.location.href = "index.html";
+// employee account (any @go-aheadsingapore.com that is not admin)
+if (userEmail.endsWith("@go-aheadsingapore.com")) {
+  window.location.href = "employee.html";     // employee dashboard (read only)
+  return;
+}
+
+// everyone else blocked
+showMessage("This account is not allowed.");
+await signOut(auth);
+
       }catch(err){
         console.error(err);
         showMessage(err.message);
