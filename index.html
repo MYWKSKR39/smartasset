@@ -64,15 +64,25 @@
       padding:2rem 1rem 3rem 1rem;
     }
     .content-wrapper{
-      width:100%;max-width:1000px;
+      width:100%;max-width:1100px;
       display:flex;flex-direction:column;
       gap:1.5rem;
+    }
+    .cards-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:1.5rem;
+    }
+    .card-half{
+      flex:1;
+      min-width:320px;
     }
     .content-card{
       background:#fff;
       border-radius:8px;
       box-shadow:0 2px 6px rgba(0,0,0,0.08);
       padding:1.3rem 1.4rem 1.6rem 1.4rem;
+      height:100%;
     }
     .content-header{
       display:flex;align-items:center;
@@ -80,7 +90,7 @@
       margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
     }
     .content-header h2{
-      margin:0;font-size:1.7rem;
+      margin:0;font-size:1.5rem;
     }
     .actions{
       display:flex;gap:0.5rem;
@@ -110,7 +120,10 @@
     .btn-table{
       font-size:0.85rem;padding:0.25rem 0.6rem;
       border-radius:4px;border:none;cursor:pointer;
+      margin-right:0.25rem;
     }
+    .btn-edit{background:#1976d2;color:#fff}
+    .btn-edit:hover{background:#0d47a1}
     .btn-delete{background:#e53935;color:#fff}
     .btn-delete:hover{background:#c62828}
     .btn-approve{background:#43a047;color:#fff}
@@ -159,60 +172,61 @@
   <main>
     <div class="content-wrapper">
 
-      <!-- Current assets card -->
-      <section class="content-card">
-        <div class="content-header">
-          <h2>Current Assets</h2>
-          <div class="actions">
-            <button id="addBtn" class="btn-secondary">Add Asset</button>
-            <button id="approveBtn" class="btn-secondary">Approve (TBC)</button>
+      <div class="cards-row">
+        <!-- Current assets card -->
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Current Assets</h2>
+            <div class="actions">
+              <button id="addBtn" class="btn-secondary">Add Asset</button>
+            </div>
           </div>
-        </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Owner</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="assetTableBody">
-              <tr><td colspan="6">Loading assets...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assetTableBody">
+                <tr><td colspan="6">Loading assets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <!-- Borrow requests card -->
-      <section class="content-card">
-        <div class="content-header">
-          <h2>Borrow requests</h2>
-        </div>
+        <!-- Borrow requests card -->
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Borrow requests</h2>
+          </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th>
-                <th>Requested by</th>
-                <th>Start date</th>
-                <th>End date</th>
-                <th>Reason</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="requestTableBody">
-              <tr><td colspan="7">Loading requests...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Requested by</th>
+                  <th>Start date</th>
+                  <th>End date</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="requestTableBody">
+                <tr><td colspan="7">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
     </div>
   </main>
@@ -257,7 +271,6 @@
     const requestTbody = document.getElementById("requestTableBody");
     const logoutBtn = document.getElementById("logoutBtn");
     const addBtn = document.getElementById("addBtn");
-    const approveBtn = document.getElementById("approveBtn");
 
     logoutBtn.addEventListener("click", async () => {
       try{
@@ -273,26 +286,76 @@
       window.location.href = "add.html";
     });
 
-    approveBtn.addEventListener("click", () => {
-      alert("Approve function not yet implemented");
-    });
-
-    // remove asset
+    // click events on asset table - edit and delete
     assetTbody.addEventListener("click", async (event) => {
-      const btn = event.target.closest(".btn-delete");
-      if (!btn) return;
-      const id = btn.getAttribute("data-id");
-      if (!id) return;
+      const deleteBtn = event.target.closest(".btn-delete");
+      const editBtn = event.target.closest(".btn-edit");
 
-      if (!window.confirm("Remove this asset?")) return;
+      // delete branch
+      if (deleteBtn){
+        const id = deleteBtn.getAttribute("data-id");
+        if (!id) return;
+        if (!window.confirm("Remove this asset?")) return;
 
-      try{
-        await deleteDoc(doc(db, "assets", id));
-        const row = btn.closest("tr");
-        if (row) row.remove();
-      }catch(err){
-        console.error(err);
-        alert("Error removing asset: " + err.message);
+        try{
+          await deleteDoc(doc(db, "assets", id));
+          const row = deleteBtn.closest("tr");
+          if (row) row.remove();
+        }catch(err){
+          console.error(err);
+          alert("Error removing asset: " + err.message);
+        }
+        return;
+      }
+
+      // edit branch
+      if (editBtn){
+        const id = editBtn.getAttribute("data-id");
+        if (!id) return;
+
+        const row = editBtn.closest("tr");
+        if (!row) return;
+
+        const currentAssetId = row.children[0].textContent.trim();
+        const currentName = row.children[1].textContent.trim();
+        const currentCategory = row.children[2].textContent.trim();
+        const currentOwner = row.children[3].textContent.trim();
+        const currentStatus = row.children[4].textContent.trim();
+
+        const newAssetId = window.prompt("Asset ID", currentAssetId);
+        if (newAssetId === null) return;
+
+        const newName = window.prompt("Asset name", currentName);
+        if (newName === null) return;
+
+        const newCategory = window.prompt("Category", currentCategory);
+        if (newCategory === null) return;
+
+        const newOwner = window.prompt("Owner", currentOwner);
+        if (newOwner === null) return;
+
+        const newStatus = window.prompt("Status", currentStatus);
+        if (newStatus === null) return;
+
+        try{
+          await updateDoc(doc(db, "assets", id), {
+            assetId: newAssetId.trim(),
+            name: newName.trim(),
+            category: newCategory.trim(),
+            owner: newOwner.trim(),
+            status: newStatus.trim()
+          });
+
+          // update row in table
+          row.children[0].textContent = newAssetId.trim();
+          row.children[1].textContent = newName.trim();
+          row.children[2].textContent = newCategory.trim();
+          row.children[3].textContent = newOwner.trim();
+          row.children[4].textContent = newStatus.trim();
+        }catch(err){
+          console.error(err);
+          alert("Error updating asset: " + err.message);
+        }
       }
     });
 
@@ -321,6 +384,7 @@
             <td>${owner || "-"}</td>
             <td>${status || "-"}</td>
             <td>
+              <button class="btn-table btn-edit" data-id="${docSnap.id}">Edit</button>
               <button class="btn-table btn-delete" data-id="${docSnap.id}">Remove</button>
             </td>
           `;
@@ -381,7 +445,7 @@
       }
     }
 
-    // handle approve / reject click
+    // handle approve and reject
     requestTbody.addEventListener("click", async (event) => {
       const approveButton = event.target.closest(".btn-approve");
       const rejectButton = event.target.closest(".btn-reject");
