@@ -76,7 +76,7 @@
     }
     .card-half{
       flex:1;
-      min-width:550px;  /* wider white boxes */
+      min-width:550px;
     }
     .content-card{
       background:#fff;
@@ -108,7 +108,7 @@
     .btn-secondary:hover{background:#0065cf}
     .table-wrapper{
       border-radius:4px;
-      overflow-x:visible;   /* no horizontal slider */
+      overflow-x:visible;
       overflow-y:visible;
       background:#fff;
     }
@@ -142,6 +142,10 @@
     .status-pending{background:#fff3cd;color:#856404}
     .status-approved{background:#e8f5e9;color:#2e7d32}
     .status-rejected{background:#ffebee;color:#c62828}
+    .no-actions{
+      font-size:0.85rem;
+      color:#666;
+    }
     footer{
       text-align:center;
       padding:1rem 0.5rem 1.4rem 0.5rem;
@@ -290,7 +294,7 @@
       window.location.href = "add.html";
     });
 
-    // asset table clicks: edit and delete
+    // asset table clicks: full edit and delete
     assetTbody.addEventListener("click", async (event) => {
       const deleteBtn = event.target.closest(".btn-delete");
       const editBtn = event.target.closest(".btn-edit");
@@ -312,7 +316,7 @@
         return;
       }
 
-      // edit: only owner and status
+      // edit: allow changing every field in the row
       if (editBtn){
         const id = editBtn.getAttribute("data-id");
         if (!id) return;
@@ -320,31 +324,46 @@
         const row = editBtn.closest("tr");
         if (!row) return;
 
-        const currentOwner = row.children[3].textContent.trim();
-        const currentStatus = row.children[4].textContent.trim();
+        const currentAssetId = row.children[0].textContent.trim();
+        const currentName    = row.children[1].textContent.trim();
+        const currentCategory= row.children[2].textContent.trim();
+        const currentOwner   = row.children[3].textContent.trim();
+        const currentStatus  = row.children[4].textContent.trim();
 
-        const newOwner = window.prompt("Owner", currentOwner);
+        let newAssetId = window.prompt("Asset ID", currentAssetId);
+        if (newAssetId === null) return;
+        newAssetId = newAssetId.trim() || currentAssetId;
+
+        let newName = window.prompt("Asset name", currentName);
+        if (newName === null) return;
+        newName = newName.trim() || currentName;
+
+        let newCategory = window.prompt("Category", currentCategory);
+        if (newCategory === null) return;
+        newCategory = newCategory.trim() || currentCategory;
+
+        let newOwner = window.prompt("Owner", currentOwner);
         if (newOwner === null) return;
+        newOwner = newOwner.trim() || currentOwner;
 
-        const allowedStatuses = ["Available","In Use","Maintenance","Retired"];
-        const statusPromptText = "Status (Available / In Use / Maintenance / Retired)";
-        let statusInput = window.prompt(statusPromptText, currentStatus);
-        if (statusInput === null) return;
-
-        statusInput = statusInput.trim();
-        const matchedStatus = allowedStatuses.find(
-          s => s.toLowerCase() === statusInput.toLowerCase()
-        );
-        const finalStatus = matchedStatus || currentStatus;
+        let newStatus = window.prompt("Status", currentStatus);
+        if (newStatus === null) return;
+        newStatus = newStatus.trim() || currentStatus;
 
         try{
           await updateDoc(doc(db, "assets", id), {
-            owner: newOwner.trim(),
-            status: finalStatus
+            assetId: newAssetId,
+            name: newName,
+            category: newCategory,
+            owner: newOwner,
+            status: newStatus
           });
 
-          row.children[3].textContent = newOwner.trim();
-          row.children[4].textContent = finalStatus;
+          row.children[0].textContent = newAssetId;
+          row.children[1].textContent = newName;
+          row.children[2].textContent = newCategory;
+          row.children[3].textContent = newOwner;
+          row.children[4].textContent = newStatus;
         }catch(err){
           console.error(err);
           alert("Error updating asset: " + err.message);
@@ -411,9 +430,16 @@
           const reason = r.reason || "";
           const status = r.status || "Pending";
 
+          const lower = status.toLowerCase();
           let statusClass = "status-pending";
-          if (status.toLowerCase() === "approved") statusClass = "status-approved";
-          else if (status.toLowerCase() === "rejected") statusClass = "status-rejected";
+          if (lower === "approved") statusClass = "status-approved";
+          else if (lower === "rejected") statusClass = "status-rejected";
+
+          const actionsHtml =
+            lower === "pending"
+              ? `<button class="btn-table btn-approve" data-id="${id}">Approve</button>
+                 <button class="btn-table btn-reject" data-id="${id}">Reject</button>`
+              : `<span class="no-actions">No actions</span>`;
 
           const tr = document.createElement("tr");
           tr.innerHTML = `
@@ -423,10 +449,7 @@
             <td>${endDate || "-"}</td>
             <td>${reason || "-"}</td>
             <td><span class="status-chip ${statusClass}">${status}</span></td>
-            <td>
-              <button class="btn-table btn-approve" data-id="${id}">Approve</button>
-              <button class="btn-table btn-reject" data-id="${id}">Reject</button>
-            </td>
+            <td>${actionsHtml}</td>
           `;
           requestTbody.appendChild(tr);
         });
