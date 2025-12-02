@@ -63,28 +63,40 @@
       justify-content:center;
       padding:2rem 1rem 3rem 1rem;
     }
-    .content-card{width:100%;max-width:900px}
+    .content-wrapper{
+      width:100%;max-width:1000px;
+      display:flex;flex-direction:column;
+      gap:1.5rem;
+    }
+    .content-card{
+      background:#fff;
+      border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      padding:1.3rem 1.4rem 1.6rem 1.4rem;
+    }
     .content-header{
       display:flex;align-items:center;
       justify-content:space-between;
       margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
     }
     .content-header h2{
-      margin:0 auto;font-size:1.7rem;
-      text-align:center;flex:1;
+      margin:0;font-size:1.7rem;
     }
     .actions{
       display:flex;gap:0.5rem;
       justify-content:flex-end;
-      flex:1;min-width:230px;
+      flex-wrap:wrap;
     }
     .btn-secondary{
       background:#007bff;color:#fff;border:none;
+      padding:0.4rem 0.9rem;
+      border-radius:4px;
+      font-size:0.9rem;
+      cursor:pointer;
     }
     .btn-secondary:hover{background:#0065cf}
     .table-wrapper{
       border-radius:4px;overflow:hidden;
-      box-shadow:0 2px 6px rgba(0,0,0,0.08);
       background:#fff;
     }
     table{
@@ -101,6 +113,19 @@
     }
     .btn-delete{background:#e53935;color:#fff}
     .btn-delete:hover{background:#c62828}
+    .btn-approve{background:#43a047;color:#fff}
+    .btn-approve:hover{background:#2e7d32}
+    .btn-reject{background:#fb8c00;color:#fff}
+    .btn-reject:hover{background:#ef6c00}
+    .status-chip{
+      padding:0.15rem 0.5rem;
+      border-radius:999px;
+      font-size:0.8rem;
+      display:inline-block;
+    }
+    .status-pending{background:#fff3cd;color:#856404}
+    .status-approved{background:#e8f5e9;color:#2e7d32}
+    .status-rejected{background:#ffebee;color:#c62828}
     footer{
       text-align:center;
       padding:1rem 0.5rem 1.4rem 0.5rem;
@@ -108,10 +133,9 @@
       background:#f5f5f5;border-top:1px solid #ddd;
     }
     @media (max-width:640px){
-      .content-header{flex-direction:column}
-      .content-header h2{order:-1}
-      .actions{justify-content:center}
+      .content-header{flex-direction:column;align-items:flex-start}
       th,td{padding:0.6rem 0.5rem}
+      .actions{width:100%;justify-content:flex-start}
     }
   </style>
 </head>
@@ -133,32 +157,63 @@
   </section>
 
   <main>
-    <div class="content-card">
-      <div class="content-header">
-        <h2>Current Assets</h2>
-        <div class="actions">
-          <button id="addBtn" class="btn-secondary">Add Asset</button>
-          <button id="approveBtn" class="btn-secondary">Approve</button>
-        </div>
-      </div>
+    <div class="content-wrapper">
 
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Asset ID</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Owner</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="assetTableBody">
-            <tr><td colspan="6">Loading assets...</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- Current assets card -->
+      <section class="content-card">
+        <div class="content-header">
+          <h2>Current Assets</h2>
+          <div class="actions">
+            <button id="addBtn" class="btn-secondary">Add Asset</button>
+            <button id="approveBtn" class="btn-secondary">Approve (TBC)</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Owner</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody">
+              <tr><td colspan="6">Loading assets...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Borrow requests card -->
+      <section class="content-card">
+        <div class="content-header">
+          <h2>Borrow requests</h2>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Requested by</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="requestTableBody">
+              <tr><td colspan="7">Loading requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -180,7 +235,8 @@
       query,
       orderBy,
       doc,
-      deleteDoc
+      deleteDoc,
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -197,7 +253,8 @@
     const db = getFirestore(app);
 
     const userEmailSpan = document.getElementById("userEmail");
-    const tbody = document.getElementById("assetTableBody");
+    const assetTbody = document.getElementById("assetTableBody");
+    const requestTbody = document.getElementById("requestTableBody");
     const logoutBtn = document.getElementById("logoutBtn");
     const addBtn = document.getElementById("addBtn");
     const approveBtn = document.getElementById("approveBtn");
@@ -220,7 +277,8 @@
       alert("Approve function not yet implemented");
     });
 
-    tbody.addEventListener("click", async (event) => {
+    // remove asset
+    assetTbody.addEventListener("click", async (event) => {
       const btn = event.target.closest(".btn-delete");
       if (!btn) return;
       const id = btn.getAttribute("data-id");
@@ -239,13 +297,13 @@
     });
 
     async function loadAssets(){
-      tbody.innerHTML = '<tr><td colspan="6">Loading assets...</td></tr>';
+      assetTbody.innerHTML = '<tr><td colspan="6">Loading assets...</td></tr>';
       try{
-        const q = query(collection(db, "assets"), orderBy("assetId"));
-        const snapshot = await getDocs(q);
-        tbody.innerHTML = "";
+        const qAssets = query(collection(db, "assets"), orderBy("assetId"));
+        const snapshot = await getDocs(qAssets);
+        assetTbody.innerHTML = "";
         if (snapshot.empty){
-          tbody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
+          assetTbody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
           return;
         }
         snapshot.forEach((docSnap) => {
@@ -266,14 +324,86 @@
               <button class="btn-table btn-delete" data-id="${docSnap.id}">Remove</button>
             </td>
           `;
-          tbody.appendChild(tr);
+          assetTbody.appendChild(tr);
         });
       }catch(err){
         console.error(err);
-        tbody.innerHTML = '<tr><td colspan="6">Error loading assets.</td></tr>';
+        assetTbody.innerHTML = '<tr><td colspan="6">Error loading assets.</td></tr>';
         alert("Error loading assets: " + err.message);
       }
     }
+
+    // load borrow requests
+    async function loadRequests(){
+      requestTbody.innerHTML = '<tr><td colspan="7">Loading requests...</td></tr>';
+      try{
+        const qReq = query(collection(db, "borrowRequests"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(qReq);
+        requestTbody.innerHTML = "";
+        if (snapshot.empty){
+          requestTbody.innerHTML = '<tr><td colspan="7">No requests found.</td></tr>';
+          return;
+        }
+
+        snapshot.forEach((docSnap) => {
+          const r = docSnap.data() || {};
+          const id = docSnap.id;
+          const assetId = r.assetId || "";
+          const requestedBy = r.requestedBy || "";
+          const startDate = r.startDate || "";
+          const endDate = r.endDate || "";
+          const reason = r.reason || "";
+          const status = (r.status || "Pending");
+
+          let statusClass = "status-pending";
+          if (status.toLowerCase() === "approved") statusClass = "status-approved";
+          else if (status.toLowerCase() === "rejected") statusClass = "status-rejected";
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${assetId || "-"}</td>
+            <td>${requestedBy || "-"}</td>
+            <td>${startDate || "-"}</td>
+            <td>${endDate || "-"}</td>
+            <td>${reason || "-"}</td>
+            <td><span class="status-chip ${statusClass}">${status}</span></td>
+            <td>
+              <button class="btn-table btn-approve" data-id="${id}">Approve</button>
+              <button class="btn-table btn-reject" data-id="${id}">Reject</button>
+            </td>
+          `;
+          requestTbody.appendChild(tr);
+        });
+      }catch(err){
+        console.error(err);
+        requestTbody.innerHTML = '<tr><td colspan="7">Error loading requests.</td></tr>';
+        alert("Error loading requests: " + err.message);
+      }
+    }
+
+    // handle approve / reject click
+    requestTbody.addEventListener("click", async (event) => {
+      const approveButton = event.target.closest(".btn-approve");
+      const rejectButton = event.target.closest(".btn-reject");
+      const button = approveButton || rejectButton;
+      if (!button) return;
+
+      const id = button.getAttribute("data-id");
+      if (!id) return;
+
+      const newStatus = approveButton ? "Approved" : "Rejected";
+
+      try{
+        button.disabled = true;
+        await updateDoc(doc(db, "borrowRequests", id), { status: newStatus });
+        await loadRequests();
+      }catch(err){
+        console.error(err);
+        alert("Error updating request: " + err.message);
+      }finally{
+        button.disabled = false;
+      }
+    });
 
     onAuthStateChanged(auth, async (user) => {
       if (!user){
@@ -288,6 +418,7 @@
       }
       userEmailSpan.textContent = user.email || "";
       loadAssets();
+      loadRequests();
     });
   </script>
 </body>
