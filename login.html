@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SmartAsset - Login</title>
+  <title>SmartAsset Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     * {
@@ -10,6 +10,7 @@
       margin: 0;
       padding: 0;
     }
+
     body {
       font-family: Arial, Helvetica, sans-serif;
       background: linear-gradient(to bottom, #0d47a1, #1976d2);
@@ -19,6 +20,7 @@
       justify-content: center;
       color: #222;
     }
+
     .card {
       background-color: #fff;
       border-radius: 8px;
@@ -27,22 +29,26 @@
       max-width: 420px;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
     }
+
     .card h1 {
       font-size: 1.7rem;
       margin-bottom: 0.3rem;
       text-align: center;
     }
+
     .card p.subtitle {
       text-align: center;
       margin-bottom: 1.5rem;
       color: #666;
       font-size: 0.95rem;
     }
+
     label {
       display: block;
       margin-bottom: 0.25rem;
       font-size: 0.9rem;
     }
+
     input[type="email"],
     input[type="password"] {
       width: 100%;
@@ -52,6 +58,7 @@
       margin-bottom: 0.9rem;
       font-size: 0.95rem;
     }
+
     button {
       width: 100%;
       padding: 0.7rem;
@@ -63,22 +70,27 @@
       cursor: pointer;
       margin-top: 0.4rem;
     }
+
     button:hover {
       background-color: #0f5cb7;
     }
+
     #resetBtn {
       background-color: #fff;
       color: #1976d2;
       border: 1px solid #1976d2;
     }
+
     #resetBtn:hover {
       background-color: #e3f2fd;
     }
-    .error {
+
+    #message {
       font-size: 0.85rem;
       margin-top: 0.6rem;
       min-height: 1.2em;
     }
+
     .note {
       margin-top: 1rem;
       font-size: 0.85rem;
@@ -101,7 +113,7 @@
     <button id="loginBtn">Login</button>
     <button id="resetBtn" type="button">Reset password</button>
 
-    <div id="errorMsg" class="error"></div>
+    <div id="message"></div>
 
     <p class="note">
       Only admin accounts are allowed to access the dashboard.
@@ -113,9 +125,10 @@
     import {
       getAuth,
       signInWithEmailAndPassword,
-      onAuthStateChanged,
       signOut,
-      sendPasswordResetEmail
+      sendPasswordResetEmail,
+      setPersistence,
+      inMemoryPersistence
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -129,38 +142,40 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    import { setPersistence, browserSessionPersistence, inMemoryPersistence } 
-      from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-    await setPersistence(auth, inMemoryPersistence);
+    // require login every time by keeping auth only in memory
+    setPersistence(auth, inMemoryPersistence).catch((err) => {
+      console.error("Error setting persistence", err);
+    });
 
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const loginBtn = document.getElementById("loginBtn");
     const resetBtn = document.getElementById("resetBtn");
-    const errorMsg = document.getElementById("errorMsg");
+    const messageDiv = document.getElementById("message");
 
-    function setError(text, success = false) {
-      errorMsg.textContent = text;
-      errorMsg.style.color = success ? "#2e7d32" : "#c62828";
+    function showMessage(text, isSuccess = false) {
+      messageDiv.textContent = text;
+      messageDiv.style.color = isSuccess ? "#2e7d32" : "#c62828";
     }
 
     loginBtn.addEventListener("click", async () => {
-      setError("");
+      showMessage("");
 
       const email = (emailInput.value || "").trim();
       const password = passwordInput.value;
 
       if (!email || !password) {
-        setError("Please enter both email and password.");
+        showMessage("Please enter both email and password.");
         return;
       }
 
       try {
         const cred = await signInWithEmailAndPassword(auth, email, password);
 
+        // only allow admin account
         if (cred.user.email !== "admin@go-aheadsingapore.com") {
-          setError("This account is not allowed to access the admin dashboard.");
+          showMessage("This account is not allowed to access the admin dashboard.");
           await signOut(auth);
           return;
         }
@@ -168,37 +183,25 @@
         window.location.href = "index.html";
       } catch (err) {
         console.error(err);
-        setError(err.message);
+        showMessage(err.message);
       }
     });
 
     resetBtn.addEventListener("click", async () => {
-      setError("");
+      showMessage("");
 
       const email = (emailInput.value || "").trim();
-
       if (!email) {
-        setError("Enter your email above first.");
+        showMessage("Enter your email above first.");
         return;
       }
 
       try {
         await sendPasswordResetEmail(auth, email);
-        setError("Password reset email sent if this account exists.", true);
+        showMessage("Password reset email sent if this account exists.", true);
       } catch (err) {
         console.error(err);
-        setError(err.message);
-      }
-    });
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        return;
-      }
-      if (user.email === "admin@go-aheadsingapore.com") {
-        window.location.href = "index.html";
-      } else {
-        await signOut(auth);
+        showMessage(err.message);
       }
     });
   </script>
