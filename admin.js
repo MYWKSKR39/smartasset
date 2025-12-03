@@ -1,4 +1,6 @@
 // admin.js
+// Shared Firebase setup for all admin pages
+
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
@@ -10,255 +12,325 @@ import {
   getFirestore,
   collection,
   getDocs,
-  query,
-  orderBy,
+  addDoc,
   doc,
-  deleteDoc,
-  updateDoc
+  getDoc,
+  updateDoc,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-// init Firebase
+// init
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM refs
+// common elements (may be null on some pages)
 const userEmailSpan = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// elements that exist only on some pages
 const assetTbody = document.getElementById("assetTableBody");
 const requestTbody = document.getElementById("requestTableBody");
-const logoutBtn = document.getElementById("logoutBtn");
-const addBtn = document.getElementById("addBtn");
+const addAssetForm = document.getElementById("addAssetForm");
 
-// logout
-logoutBtn.addEventListener("click", async () => {
-  try{
-    await signOut(auth);
-  }catch(err){
-    console.error("Logout error:", err);
-  }finally{
+// allowed categories for assets
+const allowedCategories = ["Laptop", "Mobile", "IT", "Other"];
+
+// auth guard for all admin pages
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
     window.location.href = "login.html";
-  }
-});
-
-// go to add.html
-addBtn.addEventListener("click", () => {
-  window.location.href = "add.html";
-});
-
-// asset table events
-assetTbody.addEventListener("click", async (event) => {
-  const deleteBtn = event.target.closest(".btn-delete");
-  const editBtn = event.target.closest(".btn-edit");
-
-  // delete
-  if (deleteBtn){
-    const id = deleteBtn.getAttribute("data-id");
-    if (!id) return;
-    if (!window.confirm("Remove this asset?")) return;
-
-    try{
-      await deleteDoc(doc(db, "assets", id));
-      const row = deleteBtn.closest("tr");
-      if (row) row.remove();
-    }catch(err){
-      console.error(err);
-      alert("Error removing asset: " + err.message);
-    }
     return;
   }
 
-  // edit
-  if (editBtn){
-    const id = editBtn.getAttribute("data-id");
-    if (!id) return;
+  // only admin allowed on admin pages
+  if (user.email !== "admin@go-aheadsingapore.com") {
+    window.location.href = "employee.html";
+    return;
+  }
 
-    const row = editBtn.closest("tr");
-    if (!row) return;
+  if (userEmailSpan) {
+    userEmailSpan.textContent = user.email;
+  }
 
-    const currentAssetId = row.children[0].textContent.trim();
-    const currentName    = row.children[1].textContent.trim();
-    const currentCategory= row.children[2].textContent.trim();
-    const currentOwner   = row.children[3].textContent.trim();
-    const currentLocation= row.children[4].textContent.trim();
-    const currentStatus  = row.children[5].textContent.trim();
+  // initialise per page
+  if (assetTbody) {
+    initDashboard();
+  }
 
-    let newAssetId = window.prompt("Asset ID", currentAssetId);
-    if (newAssetId === null) return;
-    newAssetId = newAssetId.trim() || currentAssetId;
-
-    let newName = window.prompt("Asset name", currentName);
-    if (newName === null) return;
-    newName = newName.trim() || currentName;
-
-    let newCategory = window.prompt("Category", currentCategory);
-    if (newCategory === null) return;
-    newCategory = newCategory.trim() || currentCategory;
-
-    let newOwner = window.prompt("Owner", currentOwner);
-    if (newOwner === null) return;
-    newOwner = newOwner.trim() || currentOwner;
-
-    let newLocation = window.prompt("Location", currentLocation);
-    if (newLocation === null) return;
-    newLocation = newLocation.trim() || currentLocation;
-
-    let newStatus = window.prompt("Status", currentStatus);
-    if (newStatus === null) return;
-    newStatus = newStatus.trim() || currentStatus;
-
-    try{
-      await updateDoc(doc(db, "assets", id), {
-        assetId: newAssetId,
-        name: newName,
-        category: newCategory,
-        owner: newOwner,
-        location: newLocation,
-        status: newStatus
-      });
-
-      row.children[0].textContent = newAssetId;
-      row.children[1].textContent = newName;
-      row.children[2].textContent = newCategory;
-      row.children[3].textContent = newOwner;
-      row.children[4].textContent = newLocation;
-      row.children[5].textContent = newStatus;
-    }catch(err){
-      console.error(err);
-      alert("Error updating asset: " + err.message);
-    }
+  if (addAssetForm) {
+    initAddAsset();
   }
 });
 
-// load assets
-async function loadAssets(){
+// logout button
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      window.location.href = "login.html";
+    }
+  });
+}
+
+// ---------------- dashboard (index.html) ----------------
+
+function initDashboard() {
+  loadAssets();
+  loadBorrowRequests();
+}
+
+// load assets into Current Assets table
+async function loadAssets() {
   assetTbody.innerHTML = '<tr><td colspan="7">Loading assets...</td></tr>';
-  try{
-    const qAssets = query(collection(db, "assets"), orderBy("assetId"));
-    const snapshot = await getDocs(qAssets);
+
+  try {
+    const snap = await getDocs(collection(db, "assets"));
     assetTbody.innerHTML = "";
-    if (snapshot.empty){
-      assetTbody.innerHTML = '<tr><td colspan="7">No assets found.</td></tr>';
+
+    if (snap.empty) {
+      assetTbody.innerHTML =
+        '<tr><td colspan="7">No assets found.</td></tr>';
       return;
     }
-    snapshot.forEach((docSnap) => {
-      const asset = docSnap.data() || {};
-      const assetId = asset.assetId || asset.AssetID || asset.id || "";
-      const name = asset.name || asset.assetName || asset.type || "Unknown";
-      const category = asset.category || asset.Category || "";
-      const owner = asset.owner || asset.Owner || "";
-      const location = asset.location || asset.Location || "";
-      const status = asset.status || asset.Status || "";
+
+    snap.forEach((docSnap) => {
+      const a = docSnap.data() || {};
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${assetId || "-"}</td>
-        <td>${name || "-"}</td>
-        <td>${category || "-"}</td>
-        <td>${owner || "-"}</td>
-        <td>${location || "-"}</td>
-        <td>${status || "-"}</td>
+        <td>${a.assetId || "-"}</td>
+        <td>${a.name || "-"}</td>
+        <td>${a.category || "-"}</td>
+        <td>${a.owner || "-"}</td>
+        <td>${a.location || "-"}</td>
+        <td>${a.status || "-"}</td>
         <td>
-          <button class="btn-table btn-edit" data-id="${docSnap.id}">Edit</button>
-          <button class="btn-table btn-delete" data-id="${docSnap.id}">Remove</button>
+          <button class="btn-small btn-edit" data-id="${docSnap.id}">Edit</button>
+          <button class="btn-small btn-danger btn-remove" data-id="${docSnap.id}">Remove</button>
         </td>
       `;
       assetTbody.appendChild(tr);
     });
-  }catch(err){
+
+    // attach handlers
+    assetTbody.querySelectorAll(".btn-edit").forEach((btn) => {
+      btn.addEventListener("click", () => editAsset(btn.dataset.id));
+    });
+    assetTbody.querySelectorAll(".btn-remove").forEach((btn) => {
+      btn.addEventListener("click", () => removeAsset(btn.dataset.id));
+    });
+  } catch (err) {
     console.error(err);
-    assetTbody.innerHTML = '<tr><td colspan="7">Error loading assets.</td></tr>';
-    alert("Error loading assets: " + err.message);
+    assetTbody.innerHTML =
+      '<tr><td colspan="7">Error loading assets.</td></tr>';
+  }
+}
+
+// edit asset with prompts, including location
+async function editAsset(id) {
+  try {
+    const ref = doc(db, "assets", id);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      alert("Asset not found.");
+      return;
+    }
+
+    const a = snap.data() || {};
+
+    let assetId = prompt("Asset ID", a.assetId || "");
+    if (!assetId) return;
+    assetId = assetId.trim().toUpperCase();
+
+    let name = prompt("Name", a.name || "");
+    if (!name) return;
+    name = name.trim();
+
+    let category = prompt(
+      `Category (Laptop, Mobile, IT, Other)`,
+      a.category || "Laptop"
+    );
+    if (!category) return;
+    category = category.trim();
+    // keep previous category if invalid
+    if (!allowedCategories.includes(category)) {
+      alert("Invalid category. Keeping original category.");
+      category = a.category || "Laptop";
+    }
+
+    let owner = prompt("Owner", a.owner || "");
+    if (!owner) return;
+    owner = owner.trim();
+
+    let location = prompt("Location", a.location || "");
+    if (!location) return;
+    location = location.trim();
+
+    let status = prompt(
+      "Status (Available, In Use, Under Maintenance)",
+      a.status || "Available"
+    );
+    if (!status) return;
+    status = status.trim();
+
+    await updateDoc(ref, {
+      assetId,
+      name,
+      category,
+      owner,
+      location,
+      status
+    });
+
+    loadAssets();
+  } catch (err) {
+    console.error(err);
+    alert("Error updating asset.");
+  }
+}
+
+// remove asset
+async function removeAsset(id) {
+  const ok = confirm("Are you sure you want to remove this asset?");
+  if (!ok) return;
+
+  try {
+    await deleteDoc(doc(db, "assets", id));
+    loadAssets();
+  } catch (err) {
+    console.error(err);
+    alert("Error removing asset.");
   }
 }
 
 // load borrow requests
-async function loadRequests(){
-  requestTbody.innerHTML = '<tr><td colspan="7">Loading requests...</td></tr>';
-  try{
-    const qReq = query(collection(db, "borrowRequests"), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(qReq);
+async function loadBorrowRequests() {
+  if (!requestTbody) return;
+
+  requestTbody.innerHTML =
+    '<tr><td colspan="7">Loading requests...</td></tr>';
+
+  try {
+    const snap = await getDocs(collection(db, "borrowRequests"));
     requestTbody.innerHTML = "";
-    if (snapshot.empty){
-      requestTbody.innerHTML = '<tr><td colspan="7">No requests found.</td></tr>';
+
+    if (snap.empty) {
+      requestTbody.innerHTML =
+        '<tr><td colspan="7">No borrow requests yet.</td></tr>';
       return;
     }
 
-    snapshot.forEach((docSnap) => {
+    snap.forEach((docSnap) => {
       const r = docSnap.data() || {};
-      const id = docSnap.id;
-      const assetId = r.assetId || "";
-      const requestedBy = r.requestedBy || "";
-      const startDate = r.startDate || "";
-      const endDate = r.endDate || "";
-      const reason = r.reason || "";
       const status = r.status || "Pending";
 
-      const lower = status.toLowerCase();
-      let statusClass = "status-pending";
-      if (lower === "approved") statusClass = "status-approved";
-      else if (lower === "rejected") statusClass = "status-rejected";
-
-      const actionsHtml =
-        lower === "pending"
-          ? `<button class="btn-table btn-approve" data-id="${id}">Approve</button>
-             <button class="btn-table btn-reject" data-id="${id}">Reject</button>`
-          : `<span class="no-actions">No actions</span>`;
+      let actionsHtml = "No actions";
+      if (status === "Pending") {
+        actionsHtml = `
+          <button class="btn-small btn-approve" data-id="${docSnap.id}">Approve</button>
+          <button class="btn-small btn-danger btn-reject" data-id="${docSnap.id}">Reject</button>
+        `;
+      }
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${assetId || "-"}</td>
-        <td>${requestedBy || "-"}</td>
-        <td>${startDate || "-"}</td>
-        <td>${endDate || "-"}</td>
-        <td>${reason || "-"}</td>
-        <td><span class="status-chip ${statusClass}">${status}</span></td>
+        <td>${r.assetId || "-"}</td>
+        <td>${r.requestedBy || "-"}</td>
+        <td>${r.startDate || "-"}</td>
+        <td>${r.endDate || "-"}</td>
+        <td>${r.reason || "-"}</td>
+        <td>${status}</td>
         <td>${actionsHtml}</td>
       `;
       requestTbody.appendChild(tr);
     });
-  }catch(err){
+
+    // attach handlers
+    requestTbody.querySelectorAll(".btn-approve").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        updateRequestStatus(btn.dataset.id, "Approved")
+      );
+    });
+    requestTbody.querySelectorAll(".btn-reject").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        updateRequestStatus(btn.dataset.id, "Rejected")
+      );
+    });
+  } catch (err) {
     console.error(err);
-    requestTbody.innerHTML = '<tr><td colspan="7">Error loading requests.</td></tr>';
-    alert("Error loading requests: " + err.message);
+    requestTbody.innerHTML =
+      '<tr><td colspan="7">Error loading requests.</td></tr>';
   }
 }
 
-// approve / reject click
-requestTbody.addEventListener("click", async (event) => {
-  const approveButton = event.target.closest(".btn-approve");
-  const rejectButton = event.target.closest(".btn-reject");
-  const button = approveButton || rejectButton;
-  if (!button) return;
+// approve or reject request
+async function updateRequestStatus(id, newStatus) {
+  const confirmText =
+    newStatus === "Approved"
+      ? "Approve this request?"
+      : "Reject this request?";
+  const ok = confirm(confirmText);
+  if (!ok) return;
 
-  const id = button.getAttribute("data-id");
-  if (!id) return;
-
-  const newStatus = approveButton ? "Approved" : "Rejected";
-
-  try{
-    button.disabled = true;
-    await updateDoc(doc(db, "borrowRequests", id), { status: newStatus });
-    await loadRequests();
-  }catch(err){
+  try {
+    const ref = doc(db, "borrowRequests", id);
+    await updateDoc(ref, { status: newStatus });
+    loadBorrowRequests();
+  } catch (err) {
     console.error(err);
-    alert("Error updating request: " + err.message);
-  }finally{
-    button.disabled = false;
+    alert("Error updating request.");
   }
-});
+}
 
-// auth gate
-onAuthStateChanged(auth, async (user) => {
-  if (!user){
-    window.location.href = "login.html";
-    return;
-  }
-  if (user.email !== "admin@go-aheadsingapore.com"){
-    alert("Access denied. Admin only.");
-    await signOut(auth);
-    window.location.href = "login.html";
-    return;
-  }
-  userEmailSpan.textContent = user.email || "";
-  loadAssets();
-  loadRequests();
-});
+// ---------------- add asset page (add.html) ----------------
+
+function initAddAsset() {
+  addAssetForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const assetIdInput = document.getElementById("assetId");
+    const nameInput = document.getElementById("assetName");
+    const categoryInput = document.getElementById("category");
+    const ownerInput = document.getElementById("owner");
+    const locationInput = document.getElementById("location");
+    const statusInput = document.getElementById("status");
+
+    let assetId = assetIdInput.value.trim().toUpperCase();
+    const name = nameInput.value.trim();
+    let category = categoryInput.value.trim();
+    const owner = ownerInput.value.trim();
+    const location = locationInput.value.trim();
+    const status = statusInput.value.trim();
+
+    if (!assetId || !name || !category || !owner || !location || !status) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    if (!allowedCategories.includes(category)) {
+      alert("Invalid category.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "assets"), {
+        assetId,
+        name,
+        category,
+        owner,
+        location,
+        status
+      });
+
+      alert("Asset added.");
+      window.location.href = "index.html";
+    } catch (err) {
+      console.error(err);
+      alert("Error adding asset.");
+    }
+  });
+}
