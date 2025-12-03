@@ -7,32 +7,34 @@
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <header class="navbar">
-    <div class="brand">SmartAsset</div>
-    <div class="menu-icon">
-      <span></span><span></span><span></span>
+  <!-- Top nav / hero -->
+  <header class="hero">
+    <h1>Welcome to SmartAsset</h1>
+    <p>A smarter way to manage your IT assets</p>
+
+    <div class="user-bar">
+      <span class="pill">
+        Logged in as:
+        <span id="userEmail">Loading...</span>
+      </span>
+      <button id="logoutBtn" class="btn-hero">Logout</button>
     </div>
   </header>
 
-  <section class="hero">
-    <h1>Welcome to SmartAsset</h1>
-    <p>A smarter way to manage your IT assets</p>
-    <div class="user-bar">
-      <span class="pill">Logged in as: <span id="userEmail">Loading...</span></span>
-      <button id="logoutBtn" class="btn">Logout</button>
-    </div>
-  </section>
-
   <main>
     <div class="content-wrapper">
+
+      <!-- Current assets + Borrow requests row -->
       <div class="cards-row">
-        <!-- Current assets card -->
+        <!-- Current Assets -->
         <section class="content-card card-half">
           <div class="content-header">
             <h2>Current Assets</h2>
-            <div class="actions">
-              <button id="addBtn" class="btn-secondary">Add Asset</button>
-            </div>
+
+            <!-- Add Asset button (now navigates to add.html) -->
+            <button id="addAssetBtn" class="primary-btn">
+              Add Asset
+            </button>
           </div>
 
           <div class="table-wrapper">
@@ -49,13 +51,15 @@
                 </tr>
               </thead>
               <tbody id="assetTableBody">
-                <tr><td colspan="7">Loading assets...</td></tr>
+                <tr>
+                  <td colspan="7">Loading assets...</td>
+                </tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- Borrow requests card -->
+        <!-- Borrow Requests -->
         <section class="content-card card-half">
           <div class="content-header">
             <h2>Borrow requests</h2>
@@ -75,19 +79,31 @@
                 </tr>
               </thead>
               <tbody id="requestTableBody">
-                <tr><td colspan="7">Loading requests...</td></tr>
+                <tr>
+                  <td colspan="7">Loading requests...</td>
+                </tr>
               </tbody>
             </table>
           </div>
         </section>
       </div>
+
     </div>
   </main>
 
   <footer>
-    &copy; 2025 SmartAsset. All rights reserved.
+    © 2025 SmartAsset. All rights reserved.
   </footer>
 
+  <script type="module">
+    // small inline bit just to wire Add Asset button to add.html
+    const btn = document.getElementById("addAssetBtn");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        window.location.href = "add.html";
+      });
+    }
+  </script>
   <script type="module" src="admin.js"></script>
 </body>
 </html>
