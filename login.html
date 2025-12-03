@@ -2,186 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SmartAsset Login</title>
+  <title>SmartAsset - Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:Arial,Helvetica,sans-serif;
-      background:linear-gradient(to bottom,#0d47a1,#1976d2);
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#222;
-    }
-    .card{
-      background:#fff;
-      border-radius:8px;
-      padding:2rem 2.5rem;
-      width:100%;
-      max-width:420px;
-      box-shadow:0 4px 18px rgba(0,0,0,0.25);
-    }
-    .card h1{
-      font-size:1.7rem;
-      margin-bottom:0.3rem;
-      text-align:center;
-    }
-    .card p.subtitle{
-      text-align:center;
-      margin-bottom:1.5rem;
-      color:#666;
-      font-size:0.95rem;
-    }
-    label{
-      display:block;
-      margin-bottom:0.25rem;
-      font-size:0.9rem;
-    }
-    input[type="email"],input[type="password"]{
-      width:100%;
-      padding:0.6rem 0.7rem;
-      border-radius:4px;
-      border:1px solid #ccc;
-      margin-bottom:0.9rem;
-      font-size:0.95rem;
-    }
-    button{
-      width:100%;
-      padding:0.7rem;
-      border-radius:4px;
-      border:none;
-      background:#1976d2;
-      color:#fff;
-      font-size:1rem;
-      cursor:pointer;
-      margin-top:0.4rem;
-    }
-    button:hover{background:#0f5cb7}
-    #resetBtn{
-      background:#fff;
-      color:#1976d2;
-      border:1px solid #1976d2;
-    }
-    #resetBtn:hover{background:#e3f2fd}
-    #message{
-      font-size:0.85rem;
-      margin-top:0.6rem;
-      min-height:1.2em;
-    }
-    .note{
-      margin-top:1rem;
-      font-size:0.85rem;
-      color:#777;
-      text-align:center;
-    }
-  </style>
+  <link rel="stylesheet" href="css/login.css" />
 </head>
 <body>
-  <div class="card">
-    <h1>SmartAsset</h1>
-    <p class="subtitle">Admin login</p>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <h1>SmartAsset</h1>
+      <p class="subtitle">Admin and employee login</p>
 
-    <label for="email">Email</label>
-    <input id="email" type="email" placeholder="admin@go-aheadsingapore.com" />
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="emailInput">Email</label>
+          <input id="emailInput" type="email" required />
+        </div>
 
-    <label for="password">Password</label>
-    <input id="password" type="password" placeholder="Enter your password" />
+        <div class="form-group">
+          <label for="passwordInput">Password</label>
+          <input id="passwordInput" type="password" required />
+        </div>
 
-    <button id="loginBtn">Login</button>
-    <button id="resetBtn" type="button">Reset password</button>
+        <button type="submit" class="btn-primary">Login</button>
+        <button type="button" id="resetBtn" class="btn-secondary">Reset password</button>
 
-    <div id="message"></div>
+        <p id="loginMessage" class="helper-text"></p>
+      </form>
 
-    <p class="note">
-      Only admin accounts are allowed to access the dashboard.
-    </p>
+      <p class="note">Only admin accounts are allowed to access the admin dashboard.</p>
+    </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import {
-      getAuth,
-      signInWithEmailAndPassword,
-      signOut,
-      sendPasswordResetEmail
-    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
-      authDomain: "smartasset-d18c0.firebaseapp.com",
-      projectId: "smartasset-d18c0",
-      storageBucket: "smartasset-d18c0.firebasestorage.app",
-      messagingSenderId: "345539034912",
-      appId: "1:345539034912:web:e8f8a36e317f37d090e145"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const loginBtn = document.getElementById("loginBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const messageDiv = document.getElementById("message");
-
-    function showMessage(text, ok = false){
-      messageDiv.textContent = text;
-      messageDiv.style.color = ok ? "#2e7d32" : "#c62828";
-    }
-
-    loginBtn.addEventListener("click", async () => {
-      showMessage("");
-      const email = (emailInput.value || "").trim();
-      const password = passwordInput.value;
-
-      if (!email || !password){
-        showMessage("Please enter both email and password.");
-        return;
-      }
-
-      try{
-const cred = await signInWithEmailAndPassword(auth, email, password);
-const userEmail = cred.user.email || "";
-
-// admin account
-if (userEmail === "admin@go-aheadsingapore.com") {
-  window.location.href = "index.html";        // admin dashboard
-  return;
-}
-
-// employee account (any @go-aheadsingapore.com that is not admin)
-if (userEmail.endsWith("@go-aheadsingapore.com")) {
-  window.location.href = "employee.html";     // employee dashboard (read only)
-  return;
-}
-
-// everyone else blocked
-showMessage("This account is not allowed.");
-await signOut(auth);
-
-      }catch(err){
-        console.error(err);
-        showMessage(err.message);
-      }
-    });
-
-    resetBtn.addEventListener("click", async () => {
-      showMessage("");
-      const email = (emailInput.value || "").trim();
-      if (!email){
-        showMessage("Enter your email above first.");
-        return;
-      }
-      try{
-        await sendPasswordResetEmail(auth, email);
-        showMessage("Password reset email sent if this account exists.", true);
-      }catch(err){
-        console.error(err);
-        showMessage(err.message);
-      }
-    });
-  </script>
+  <script type="module" src="js/login.js"></script>
 </body>
 </html>
