@@ -1,68 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Add Asset</title>
-
-    <link rel="stylesheet" href="admin.css" />
+  <meta charset="UTF-8" />
+  <title>SmartAsset - Add Asset</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Page specific styles -->
+  <link rel="stylesheet" href="add.css" />
 </head>
 <body>
-    <div class="navbar">
-        <h1>Add Asset</h1>
-        <div class="navbar-right">
-            <span class="user-tag">Logged in as: <span id="userEmail"></span></span>
-            <button id="logoutBtn" class="logout-btn">Logout</button>
-        </div>
+
+  <!-- Top hero header -->
+  <header class="hero">
+    <h1>Add Asset</h1>
+    <p>Fill in the details of the asset you want to add to SmartAsset.</p>
+
+    <div class="user-bar">
+      <span class="pill">
+        Logged in as:
+        <span id="userEmail">Loading...</span>
+      </span>
+      <button id="logoutBtn" class="primary-btn">Logout</button>
     </div>
+  </header>
 
-    <div class="page-container">
-        <div class="card">
-            <h2>New Asset</h2>
-            <p>Fill in the details of the asset that you want to add to SmartAsset.</p>
+  <!-- Main card -->
+  <main>
+    <div class="container">
+      <h2>New Asset</h2>
 
-            <form id="addAssetForm">
+      <form id="addAssetForm" onsubmit="return false;">
 
-                <label>Asset ID</label>
-                <input type="text" id="assetId" required />
+        <label for="assetId">Asset ID</label>
+        <input
+          type="text"
+          id="assetId"
+          placeholder="e.g. IT00923"
+          required
+        />
 
-                <label>Name</label>
-                <input type="text" id="assetName" required />
+        <label for="assetName">Name</label>
+        <input
+          type="text"
+          id="assetName"
+          placeholder="e.g. Dell Latitude 5420"
+          required
+        />
 
-                <label>Category</label>
-                <select id="category" required>
-                    <option value="">Select category</option>
-                    <option value="Laptop">Laptop</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="IT">IT</option>
-                    <option value="Other">Other</option>
-                </select>
+        <label for="assetCategory">Category</label>
+        <select id="assetCategory" required>
+          <option value="">Select category</option>
+          <option value="Laptop">Laptop</option>
+          <option value="Mobile">Mobile</option>
+          <option value="IT">IT</option>
+          <option value="Other">Other</option>
+        </select>
 
-                <label>Owner</label>
-                <input type="text" id="owner" required />
+        <label for="assetOwner">Owner</label>
+        <input
+          type="text"
+          id="assetOwner"
+          placeholder="e.g. IT Department"
+          required
+        />
 
-                <!-- ⭐ NEW LOCATION FIELD ⭐ -->
-                <label>Location</label>
-                <input type="text" id="location" placeholder="e.g. Punggol Interchange" required />
+        <label for="assetLocation">Location</label>
+        <input
+          type="text"
+          id="assetLocation"
+          placeholder="e.g. Punggol interchange"
+          required
+        />
 
-                <label>Status</label>
-                <select id="status" required>
-                    <option value="">Select status</option>
-                    <option value="Available">Available</option>
-                    <option value="In Use">In Use</option>
-                    <option value="Under Maintenance">Under Maintenance</option>
-                </select>
+        <label for="assetStatus">Status</label>
+        <select id="assetStatus" required>
+          <option value="">Select status</option>
+          <option value="Available">Available</option>
+          <option value="In Use">In Use</option>
+          <option value="Under Maintenance">Under Maintenance</option>
+        </select>
 
-                <button type="submit" class="primary-btn">Save Asset</button>
-                <a href="index.html" class="secondary-btn">Cancel</a>
-            </form>
+        <div class="button-row">
+          <button id="saveAssetBtn" class="primary-btn">
+            Save Asset
+          </button>
+          <button id="cancelBtn" type="button" class="cancel-btn">
+            Cancel
+          </button>
         </div>
+
+      </form>
     </div>
+  </main>
 
-    <footer>
-        <p>© 2025 SmartAsset. All rights reserved.</p>
-    </footer>
+  <footer>
+    © 2025 SmartAsset. All rights reserved.
+  </footer>
 
-    <script type="module" src="admin.js"></script>
+  <!-- Logic for this page -->
+  <script type="module" src="add.js"></script>
 </body>
 </html>
