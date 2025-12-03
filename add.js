@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SmartAsset - Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <!-- Top nav / hero -->
+  <header class="hero">
+    <h1>Welcome to SmartAsset</h1>
+    <p>A smarter way to manage your IT assets</p>
+
+    <div class="user-bar">
+      <span class="pill">
+        Logged in as:
+        <span id="userEmail">Loading...</span>
+      </span>
+      <button id="logoutBtn" class="btn-hero">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="content-wrapper">
+
+      <!-- Current assets + Borrow requests row -->
+      <div class="cards-row">
+        <!-- Current Assets -->
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Current Assets</h2>
+
+            <!-- Add Asset button (now navigates to add.html) -->
+            <button id="addAssetBtn" class="primary-btn">
+              Add Asset
+            </button>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Owner</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assetTableBody">
+                <tr>
+                  <td colspan="7">Loading assets...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Borrow Requests -->
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Borrow requests</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Requested by</th>
+                  <th>Start date</th>
+                  <th>End date</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="requestTableBody">
+                <tr>
+                  <td colspan="7">Loading requests...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    © 2025 SmartAsset. All rights reserved.
+  </footer>
+
+  <script type="module">
+    // small inline bit just to wire Add Asset button to add.html
+    const btn = document.getElementById("addAssetBtn");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        window.location.href = "add.html";
+      });
+    }
+  </script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
