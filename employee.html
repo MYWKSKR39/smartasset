@@ -2,174 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SmartAsset - Employee View</title>
+  <title>SmartAsset - Employee</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:Arial,Helvetica,sans-serif;
-      background-color:#f5f7fb;
-      color:#222;
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-    }
-    .navbar{
-      background:#222;
-      color:#fff;
-      padding:0.7rem 1.5rem;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .navbar .brand{font-size:1.2rem;font-weight:bold}
-    .menu-icon{
-      width:32px;height:26px;
-      display:flex;flex-direction:column;
-      justify-content:space-between;
-    }
-    .menu-icon span{
-      height:4px;border-radius:2px;
-      background:#fff;display:block;
-    }
-    .hero{
-      background:#007bff;color:#fff;
-      text-align:center;
-      padding:3rem 1rem 2.2rem 1rem;
-    }
-    .hero h1{font-size:2.1rem;margin-bottom:0.6rem}
-    .hero p{font-size:1rem;opacity:0.9;margin-bottom:1.2rem}
-    .hero .user-bar{
-      margin-top:0.5rem;font-size:0.95rem;
-      display:flex;gap:0.75rem;align-items:center;
-      justify-content:center;flex-wrap:wrap;
-    }
-    .pill{
-      background:rgba(0,0,0,0.12);
-      padding:0.25rem 0.7rem;border-radius:999px;
-    }
-    .btn{
-      padding:0.35rem 0.9rem;
-      border-radius:4px;
-      font-size:0.9rem;
-      border:1px solid rgba(255,255,255,0.7);
-      background:transparent;
-      color:#fff;
-      cursor:pointer;
-    }
-    .btn:hover{background:rgba(255,255,255,0.12)}
-    main{
-      flex:1;display:flex;
-      justify-content:center;
-      padding:2rem 1rem 3rem 1rem;
-    }
-    .content-wrapper{
-      width:100%;max-width:1100px;
-      display:flex;flex-direction:column;
-      gap:1.5rem;
-    }
-    .cards-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:1.5rem;
-    }
-    .card-half{
-      flex:1;
-      min-width:320px;
-    }
-    .content-card{
-      background:#fff;
-      border-radius:8px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.08);
-      padding:1.3rem 1.4rem 1.6rem 1.4rem;
-      height:100%;
-    }
-    .content-header{
-      display:flex;align-items:center;
-      justify-content:space-between;
-      margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
-    }
-    .content-header h2{
-      margin:0;font-size:1.5rem;
-    }
-    .actions{
-      display:flex;gap:0.5rem;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-    }
-    .btn-secondary{
-      background:#007bff;color:#fff;border:none;
-      padding:0.4rem 0.9rem;
-      border-radius:4px;
-      font-size:0.9rem;
-      cursor:pointer;
-    }
-    .btn-secondary:hover{background:#0065cf}
-    .table-wrapper{
-      border-radius:4px;overflow:hidden;
-      background:#fff;
-    }
-    table{
-      width:100%;border-collapse:collapse;
-      font-size:0.95rem;
-    }
-    thead{background:#222;color:#fff}
-    th,td{padding:0.75rem 1rem;text-align:left}
-    tbody tr:nth-child(even){background:#f3f3f3}
-    tbody tr:nth-child(odd){background:#fff}
-    .field-row{margin-bottom:0.8rem}
-    label{
-      display:block;
-      font-size:0.9rem;
-      margin-bottom:0.2rem;
-    }
-    input,textarea{
-      width:100%;
-      padding:0.55rem 0.7rem;
-      border-radius:4px;
-      border:1px solid #ccc;
-      font-size:0.95rem;
-    }
-    textarea{
-      resize:vertical;
-      min-height:70px;
-    }
-    .btn-primary{
-      background:#007bff;
-      color:#fff;
-      border:none;
-      padding:0.6rem 1.2rem;
-      font-size:0.95rem;
-      cursor:pointer;
-      border-radius:4px;
-    }
-    .btn-primary:hover{background:#0065cf}
-    .message{
-      margin-top:0.6rem;
-      font-size:0.9rem;
-      min-height:1.2em;
-    }
-    .status-chip{
-      padding:0.15rem 0.5rem;
-      border-radius:999px;
-      font-size:0.8rem;
-      display:inline-block;
-    }
-    .status-pending{background:#fff3cd;color:#856404}
-    .status-approved{background:#e8f5e9;color:#2e7d32}
-    .status-rejected{background:#ffebee;color:#c62828}
-    footer{
-      text-align:center;
-      padding:1rem 0.5rem 1.4rem 0.5rem;
-      font-size:0.9rem;color:#555;
-      background:#f5f5f5;border-top:1px solid #ddd;
-    }
-    @media (max-width:640px){
-      .content-header{flex-direction:column;align-items:flex-start}
-      th,td{padding:0.6rem 0.5rem}
-      .actions{width:100%;justify-content:flex-start}
-    }
-  </style>
+  <link rel="stylesheet" href="css/employee.css" />
 </head>
 <body>
   <header class="navbar">
@@ -191,12 +26,12 @@
   <main>
     <div class="content-wrapper">
 
-      <!-- first row: assets and my requests side by side -->
+      <!-- top row: current assets + borrow form -->
       <div class="cards-row">
-        <!-- Current assets card -->
+        <!-- Current assets -->
         <section class="content-card card-half">
           <div class="content-header">
-            <h2>Current Assets</h2>
+            <h2>Current assets</h2>
           </div>
           <div class="table-wrapper">
             <table>
@@ -206,77 +41,72 @@
                   <th>Name</th>
                   <th>Category</th>
                   <th>Owner</th>
+                  <th>Location</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody id="assetTableBody">
-                <tr><td colspan="5">Loading assets...</td></tr>
+                <tr><td colspan="6">Loading assets...</td></tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- My borrow requests card -->
+        <!-- Borrow request form -->
         <section class="content-card card-half">
           <div class="content-header">
-            <h2>My borrow requests</h2>
-            <div class="actions">
-              <button id="newRequestBtn" class="btn-secondary">New request</button>
+            <h2>Borrow request</h2>
+          </div>
+
+          <form id="borrowForm" class="borrow-form">
+            <div class="form-group">
+              <label for="assetIdInput">Asset ID</label>
+              <input id="assetIdInput" type="text" placeholder="e.g. IT00354" required />
             </div>
-          </div>
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Start date</th>
-                  <th>End date</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="myRequestsBody">
-                <tr><td colspan="5">Loading requests...</td></tr>
-              </tbody>
-            </table>
-          </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="startDateInput">Start date</label>
+                <input id="startDateInput" type="date" required />
+              </div>
+              <div class="form-group">
+                <label for="endDateInput">End date</label>
+                <input id="endDateInput" type="date" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="reasonInput">Reason or notes</label>
+              <textarea id="reasonInput" rows="3" placeholder="Why do you need this asset?"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary">Submit request</button>
+            <p id="borrowMessage" class="helper-text"></p>
+          </form>
         </section>
       </div>
 
-      <!-- borrow request form card, separate option -->
-      <section class="content-card" id="requestCard" style="display:none;">
+      <!-- bottom row: my requests -->
+      <section class="content-card full-width-card">
         <div class="content-header">
-          <h2>Borrow request</h2>
+          <h2>My borrow requests</h2>
         </div>
-        <p style="font-size:0.9rem;margin-bottom:0.9rem;">
-          Fill in this form to request to borrow an asset. The request will be sent to the administrator.
-        </p>
-
-        <form id="requestForm">
-          <div class="field-row">
-            <label for="reqAssetId">Asset ID</label>
-            <input id="reqAssetId" type="text" placeholder="e.g. IT00354" required />
-          </div>
-
-          <div class="field-row" style="display:flex;gap:0.6rem;flex-wrap:wrap;">
-            <div style="flex:1;min-width:140px;">
-              <label for="startDate">Start date</label>
-              <input id="startDate" type="date" required />
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label for="endDate">End date</label>
-              <input id="endDate" type="date" required />
-            </div>
-          </div>
-
-          <div class="field-row">
-            <label for="reason">Reason or notes</label>
-            <textarea id="reason" placeholder="Why do you need this asset?" required></textarea>
-          </div>
-
-          <button type="submit" class="btn-primary">Submit request</button>
-          <div id="requestMessage" class="message"></div>
-        </form>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Reason</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="myRequestTableBody">
+              <tr><td colspan="5">Loading requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
     </div>
@@ -286,239 +116,6 @@
     &copy; 2025 SmartAsset. All rights reserved.
   </footer>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import {
-      getAuth,
-      onAuthStateChanged,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      query,
-      orderBy,
-      addDoc,
-      serverTimestamp,
-      where
-    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
-      authDomain: "smartasset-d18c0.firebaseapp.com",
-      projectId: "smartasset-d18c0",
-      storageBucket: "smartasset-d18c0.firebasestorage.app",
-      messagingSenderId: "345539034912",
-      appId: "1:345539034912:web:e8f8a36e317f37d090e145"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const userEmailSpan = document.getElementById("userEmail");
-    const assetTbody = document.getElementById("assetTableBody");
-    const myRequestsBody = document.getElementById("myRequestsBody");
-    const logoutBtn = document.getElementById("logoutBtn");
-
-    const newRequestBtn = document.getElementById("newRequestBtn");
-    const requestCard = document.getElementById("requestCard");
-    const requestForm = document.getElementById("requestForm");
-    const reqAssetIdInput = document.getElementById("reqAssetId");
-    const startDateInput = document.getElementById("startDate");
-    const endDateInput = document.getElementById("endDate");
-    const reasonInput = document.getElementById("reason");
-    const requestMessageDiv = document.getElementById("requestMessage");
-
-    function setRequestMessage(text, ok = false){
-      requestMessageDiv.textContent = text;
-      requestMessageDiv.style.color = ok ? "#2e7d32" : "#c62828";
-    }
-
-    logoutBtn.addEventListener("click", async () => {
-      try{
-        await signOut(auth);
-      }catch(err){
-        console.error("Logout error:", err);
-      }finally{
-        window.location.href = "login.html";
-      }
-    });
-
-    // toggle request form visibility
-    let requestOpen = false;
-    newRequestBtn.addEventListener("click", () => {
-      requestOpen = !requestOpen;
-      requestCard.style.display = requestOpen ? "block" : "none";
-      newRequestBtn.textContent = requestOpen ? "Close form" : "New request";
-      if (requestOpen){
-        setRequestMessage("");
-        requestForm.reset();
-        endDateInput.min = "";
-      }
-    });
-
-    async function loadAssets(){
-      assetTbody.innerHTML = '<tr><td colspan="5">Loading assets...</td></tr>';
-      try{
-        const qAssets = query(collection(db, "assets"), orderBy("assetId"));
-        const snapshot = await getDocs(qAssets);
-        assetTbody.innerHTML = "";
-        if (snapshot.empty){
-          assetTbody.innerHTML = '<tr><td colspan="5">No assets found.</td></tr>';
-          return;
-        }
-        snapshot.forEach((docSnap) => {
-          const asset = docSnap.data() || {};
-          const assetId = asset.assetId || asset.AssetID || asset.id || "";
-          const name = asset.name || asset.assetName || asset.type || "Unknown";
-          const category = asset.category || asset.Category || "";
-          const owner = asset.owner || asset.Owner || "";
-          const status = asset.status || asset.Status || "";
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${assetId || "-"}</td>
-            <td>${name || "-"}</td>
-            <td>${category || "-"}</td>
-            <td>${owner || "-"}</td>
-            <td>${status || "-"}</td>
-          `;
-          assetTbody.appendChild(tr);
-        });
-      }catch(err){
-        console.error(err);
-        assetTbody.innerHTML = '<tr><td colspan="5">Error loading assets.</td></tr>';
-        alert("Error loading assets: " + err.message);
-      }
-    }
-
-    // enforce end date not earlier than start date
-    startDateInput.addEventListener("change", () => {
-      if (!startDateInput.value){
-        endDateInput.min = "";
-        return;
-      }
-      endDateInput.min = startDateInput.value;
-      if (endDateInput.value && endDateInput.value < startDateInput.value){
-        endDateInput.value = startDateInput.value;
-      }
-    });
-
-    // submit borrow request
-    requestForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      setRequestMessage("");
-
-      const assetIdOriginal = reqAssetIdInput.value.trim();
-      const assetId = assetIdOriginal.toUpperCase();
-      const startDate = startDateInput.value;
-      const endDate = endDateInput.value;
-      const reason = reasonInput.value.trim();
-
-      if (!assetId || !startDate || !endDate || !reason){
-        setRequestMessage("Please fill in all fields.");
-        return;
-      }
-
-      if (endDate < startDate){
-        setRequestMessage("End date cannot be earlier than start date.");
-        return;
-      }
-
-      const user = auth.currentUser;
-      const email = user ? user.email : "";
-
-      try{
-        await addDoc(collection(db, "borrowRequests"), {
-          assetId,
-          assetIdOriginal,
-          startDate,
-          endDate,
-          reason,
-          requestedBy: email,
-          status: "Pending",
-          createdAt: serverTimestamp()
-        });
-
-        setRequestMessage("Request submitted to administrator.", true);
-        requestForm.reset();
-        endDateInput.min = "";
-        // refresh list and hide form
-        loadMyRequests(email);
-        requestOpen = false;
-        requestCard.style.display = "none";
-        newRequestBtn.textContent = "New request";
-      }catch(err){
-        console.error(err);
-        setRequestMessage("Error submitting request: " + err.message);
-      }
-    });
-
-    async function loadMyRequests(email){
-      myRequestsBody.innerHTML = '<tr><td colspan="5">Loading requests...</td></tr>';
-      try{
-        const qReq = query(
-          collection(db, "borrowRequests"),
-          where("requestedBy", "==", email),
-          orderBy("createdAt", "desc")
-        );
-        const snapshot = await getDocs(qReq);
-        myRequestsBody.innerHTML = "";
-        if (snapshot.empty){
-          myRequestsBody.innerHTML = '<tr><td colspan="5">No requests yet.</td></tr>';
-          return;
-        }
-        snapshot.forEach((docSnap) => {
-          const r = docSnap.data() || {};
-          const assetId = r.assetId || "";
-          const startDate = r.startDate || "";
-          const endDate = r.endDate || "";
-          const reason = r.reason || "";
-          const status = r.status || "Pending";
-
-          let statusClass = "status-pending";
-          const lower = status.toLowerCase();
-          if (lower === "approved") statusClass = "status-approved";
-          else if (lower === "rejected") statusClass = "status-rejected";
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${assetId || "-"}</td>
-            <td>${startDate || "-"}</td>
-            <td>${endDate || "-"}</td>
-            <td>${reason || "-"}</td>
-            <td><span class="status-chip ${statusClass}">${status}</span></td>
-          `;
-          myRequestsBody.appendChild(tr);
-        });
-      }catch(err){
-        console.error(err);
-        myRequestsBody.innerHTML = '<tr><td colspan="5">Error loading requests.</td></tr>';
-        alert("Error loading requests: " + err.message);
-      }
-    }
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user){
-        window.location.href = "login.html";
-        return;
-      }
-
-      const email = user.email || "";
-      userEmailSpan.textContent = email;
-
-      // block admin account from using employee page, reuse your rule as needed
-      if (email === "admin@go-aheadsingapore.com"){
-        alert("This page is for employees. Admin should use the dashboard.");
-        await signOut(auth);
-        window.location.href = "login.html";
-        return;
-      }
-
-      loadAssets();
-      loadMyRequests(email);
-    });
-  </script>
+  <script type="module" src="js/employee.js"></script>
 </body>
 </html>
