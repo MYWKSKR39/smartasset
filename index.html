@@ -198,12 +198,13 @@
                   <th>Name</th>
                   <th>Category</th>
                   <th>Owner</th>
+                  <th>Location</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="assetTableBody">
-                <tr><td colspan="6">Loading assets...</td></tr>
+                <tr><td colspan="7">Loading assets...</td></tr>
               </tbody>
             </table>
           </div>
@@ -324,11 +325,13 @@
         const row = editBtn.closest("tr");
         if (!row) return;
 
+        // column order: 0 id, 1 name, 2 category, 3 owner, 4 location, 5 status, 6 actions
         const currentAssetId = row.children[0].textContent.trim();
         const currentName    = row.children[1].textContent.trim();
         const currentCategory= row.children[2].textContent.trim();
         const currentOwner   = row.children[3].textContent.trim();
-        const currentStatus  = row.children[4].textContent.trim();
+        const currentLocation= row.children[4].textContent.trim();
+        const currentStatus  = row.children[5].textContent.trim();
 
         let newAssetId = window.prompt("Asset ID", currentAssetId);
         if (newAssetId === null) return;
@@ -346,6 +349,10 @@
         if (newOwner === null) return;
         newOwner = newOwner.trim() || currentOwner;
 
+        let newLocation = window.prompt("Location", currentLocation);
+        if (newLocation === null) return;
+        newLocation = newLocation.trim() || currentLocation;
+
         let newStatus = window.prompt("Status", currentStatus);
         if (newStatus === null) return;
         newStatus = newStatus.trim() || currentStatus;
@@ -356,6 +363,7 @@
             name: newName,
             category: newCategory,
             owner: newOwner,
+            location: newLocation,
             status: newStatus
           });
 
@@ -363,7 +371,8 @@
           row.children[1].textContent = newName;
           row.children[2].textContent = newCategory;
           row.children[3].textContent = newOwner;
-          row.children[4].textContent = newStatus;
+          row.children[4].textContent = newLocation;
+          row.children[5].textContent = newStatus;
         }catch(err){
           console.error(err);
           alert("Error updating asset: " + err.message);
@@ -372,13 +381,13 @@
     });
 
     async function loadAssets(){
-      assetTbody.innerHTML = '<tr><td colspan="6">Loading assets...</td></tr>';
+      assetTbody.innerHTML = '<tr><td colspan="7">Loading assets...</td></tr>';
       try{
         const qAssets = query(collection(db, "assets"), orderBy("assetId"));
         const snapshot = await getDocs(qAssets);
         assetTbody.innerHTML = "";
         if (snapshot.empty){
-          assetTbody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
+          assetTbody.innerHTML = '<tr><td colspan="7">No assets found.</td></tr>';
           return;
         }
         snapshot.forEach((docSnap) => {
@@ -387,6 +396,7 @@
           const name = asset.name || asset.assetName || asset.type || "Unknown";
           const category = asset.category || asset.Category || "";
           const owner = asset.owner || asset.Owner || "";
+          const location = asset.location || asset.Location || "";
           const status = asset.status || asset.Status || "";
           const tr = document.createElement("tr");
           tr.innerHTML = `
@@ -394,6 +404,7 @@
             <td>${name || "-"}</td>
             <td>${category || "-"}</td>
             <td>${owner || "-"}</td>
+            <td>${location || "-"}</td>
             <td>${status || "-"}</td>
             <td>
               <button class="btn-table btn-edit" data-id="${docSnap.id}">Edit</button>
@@ -404,7 +415,7 @@
         });
       }catch(err){
         console.error(err);
-        assetTbody.innerHTML = '<tr><td colspan="6">Error loading assets.</td></tr>';
+        assetTbody.innerHTML = '<tr><td colspan="7">Error loading assets.</td></tr>';
         alert("Error loading assets: " + err.message);
       }
     }
