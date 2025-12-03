@@ -1,109 +1,120 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>SmartAsset - Admin Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="admin.css" />
-</head>
-<body>
-  <!-- Top nav / hero -->
-  <header class="hero">
-    <h1>Welcome to SmartAsset</h1>
-    <p>A smarter way to manage your IT assets</p>
+// add.js
+// Logic for Add Asset page
 
-    <div class="user-bar">
-      <span class="pill">
-        Logged in as:
-        <span id="userEmail">Loading...</span>
-      </span>
-      <button id="logoutBtn" class="btn-hero">Logout</button>
-    </div>
-  </header>
+import { firebaseConfig } from "./firebase-config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-  <main>
-    <div class="content-wrapper">
+// ----- Firebase init -----
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-      <!-- Current assets + Borrow requests row -->
-      <div class="cards-row">
-        <!-- Current Assets -->
-        <section class="content-card card-half">
-          <div class="content-header">
-            <h2>Current Assets</h2>
+// ----- Elements -----
+const userEmailSpan = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
 
-            <!-- Add Asset button (now navigates to add.html) -->
-            <button id="addAssetBtn" class="primary-btn">
-              Add Asset
-            </button>
-          </div>
+const assetIdInput = document.getElementById("assetId");
+const nameInput = document.getElementById("assetName");
+const categorySelect = document.getElementById("assetCategory");
+const ownerInput = document.getElementById("assetOwner");
+const locationInput = document.getElementById("assetLocation");
+const statusSelect = document.getElementById("assetStatus");
 
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Owner</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="assetTableBody">
-                <tr>
-                  <td colspan="7">Loading assets...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+const saveBtn = document.getElementById("saveAssetBtn");
+const cancelBtn = document.getElementById("cancelBtn");
 
-        <!-- Borrow Requests -->
-        <section class="content-card card-half">
-          <div class="content-header">
-            <h2>Borrow requests</h2>
-          </div>
+// categories we allow
+const allowedCategories = ["Laptop", "Mobile", "IT", "Other"];
 
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Requested by</th>
-                  <th>Start date</th>
-                  <th>End date</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="requestTableBody">
-                <tr>
-                  <td colspan="7">Loading requests...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+// ----- Auth guard -----
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    // not logged in
+    window.location.href = "login.html";
+    return;
+  }
 
-    </div>
-  </main>
+  // only admin should use add asset
+  if (userEmailSpan) {
+    userEmailSpan.textContent = user.email;
+  }
 
-  <footer>
-    © 2025 SmartAsset. All rights reserved.
-  </footer>
+  if (user.email !== "admin@go-aheadsingapore.com") {
+    // non admin goes to employee view
+    window.location.href = "employee.html";
+    return;
+  }
+});
 
-  <script type="module">
-    // small inline bit just to wire Add Asset button to add.html
-    const btn = document.getElementById("addAssetBtn");
-    if (btn) {
-      btn.addEventListener("click", () => {
-        window.location.href = "add.html";
-      });
+// ----- Logout -----
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      window.location.href = "login.html";
     }
-  </script>
-  <script type="module" src="admin.js"></script>
-</body>
-</html>
+  });
+}
+
+// ----- Save asset -----
+if (saveBtn) {
+  saveBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    let assetId = assetIdInput.value.trim().toUpperCase();
+    const name = nameInput.value.trim();
+    let category = categorySelect.value.trim();
+    const owner = ownerInput.value.trim();
+    const location = locationInput.value.trim();
+    const status = statusSelect.value.trim();
+
+    if (!assetId || !name || !category || !owner || !location || !status) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    if (!allowedCategories.includes(category)) {
+      alert("Invalid category.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "assets"), {
+        assetId,
+        name,
+        category,
+        owner,
+        location,
+        status,
+        createdAt: serverTimestamp()
+      });
+
+      alert("Asset added successfully.");
+      window.location.href = "index.html";
+    } catch (err) {
+      console.error("Error adding asset:", err);
+      alert("Error adding asset. See console for details.");
+    }
+  });
+}
+
+// ----- Cancel -----
+if (cancelBtn) {
+  cancelBtn.addEventListener("click", () => {
+    window.location.href = "index.html";
+  });
+}
