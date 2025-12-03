@@ -1,381 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>SmartAsset - Add Asset</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Asset</title>
 
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background-color: #f5f7fb;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .navbar {
-      background-color: #222;
-      color: #fff;
-      padding: 0.7rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .navbar .brand {
-      font-size: 1.1rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .menu-icon {
-      width: 32px;
-      height: 26px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      cursor: default;
-    }
-
-    .menu-icon span {
-      height: 4px;
-      border-radius: 2px;
-      background-color: #fff;
-      display: block;
-    }
-
-    .hero {
-      background-color: #007bff;
-      color: #fff;
-      text-align: center;
-      padding: 2.3rem 1rem 1.8rem 1rem;
-    }
-
-    .hero h1 {
-      font-size: 1.8rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .hero .user-bar {
-      margin-top: 0.6rem;
-      font-size: 0.9rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.7rem;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .pill {
-      background-color: rgba(0, 0, 0, 0.12);
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
-    }
-
-    .btn {
-      padding: 0.35rem 0.9rem;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      background-color: transparent;
-      color: #fff;
-      cursor: pointer;
-    }
-
-    .btn:hover {
-      background-color: rgba(255, 255, 255, 0.12);
-    }
-
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      padding: 2rem 1rem 3rem 1rem;
-    }
-
-    .card {
-      background-color: #fff;
-      border-radius: 8px;
-      padding: 1.8rem 1.8rem 1.4rem 1.8rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-      width: 100%;
-      max-width: 600px;
-    }
-
-    .card h2 {
-      margin-bottom: 0.5rem;
-    }
-
-    .card p {
-      margin-bottom: 1.3rem;
-      color: #666;
-      font-size: 0.95rem;
-    }
-
-    .field-row {
-      margin-bottom: 0.9rem;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.25rem;
-      font-size: 0.9rem;
-    }
-
-    input,
-    select {
-      width: 100%;
-      padding: 0.6rem 0.7rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      font-size: 0.95rem;
-    }
-
-    .actions {
-      display: flex;
-      gap: 0.7rem;
-      margin-top: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .btn-primary {
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      font-size: 0.95rem;
-    }
-
-    .btn-primary:hover {
-      background-color: #0065cf;
-    }
-
-    .btn-outline {
-      background-color: transparent;
-      color: #007bff;
-      border: 1px solid #007bff;
-      padding: 0.55rem 1.1rem;
-      font-size: 0.95rem;
-    }
-
-    .btn-outline:hover {
-      background-color: #e1f0ff;
-    }
-
-    .message {
-      margin-top: 0.7rem;
-      font-size: 0.9rem;
-      min-height: 1.2em;
-    }
-
-    .message.error {
-      color: #c62828;
-    }
-
-    .message.success {
-      color: #2e7d32;
-    }
-
-    footer {
-      text-align: center;
-      padding: 1rem 0.5rem 1.4rem 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
-      background-color: #f5f5f5;
-      border-top: 1px solid #ddd;
-    }
-  </style>
+    <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <header class="navbar">
-    <div class="brand" onclick="window.location.href='index.html'">
-      SmartAsset
+    <div class="navbar">
+        <h1>Add Asset</h1>
+        <div class="navbar-right">
+            <span class="user-tag">Logged in as: <span id="userEmail"></span></span>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
     </div>
-    <div class="menu-icon">
-      <span></span>
-      <span></span>
-      <span></span>
+
+    <div class="page-container">
+        <div class="card">
+            <h2>New Asset</h2>
+            <p>Fill in the details of the asset that you want to add to SmartAsset.</p>
+
+            <form id="addAssetForm">
+
+                <label>Asset ID</label>
+                <input type="text" id="assetId" required />
+
+                <label>Name</label>
+                <input type="text" id="assetName" required />
+
+                <label>Category</label>
+                <select id="category" required>
+                    <option value="">Select category</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="IT">IT</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label>Owner</label>
+                <input type="text" id="owner" required />
+
+                <!-- ⭐ NEW LOCATION FIELD ⭐ -->
+                <label>Location</label>
+                <input type="text" id="location" placeholder="e.g. Punggol Interchange" required />
+
+                <label>Status</label>
+                <select id="status" required>
+                    <option value="">Select status</option>
+                    <option value="Available">Available</option>
+                    <option value="In Use">In Use</option>
+                    <option value="Under Maintenance">Under Maintenance</option>
+                </select>
+
+                <button type="submit" class="primary-btn">Save Asset</button>
+                <a href="index.html" class="secondary-btn">Cancel</a>
+            </form>
+        </div>
     </div>
-  </header>
 
-  <section class="hero">
-    <h1>Add Asset</h1>
-    <div class="user-bar">
-      <span class="pill">Logged in as: <span id="userEmail">Loading...</span></span>
-      <button id="logoutBtn" class="btn">Logout</button>
-    </div>
-  </section>
+    <footer>
+        <p>© 2025 SmartAsset. All rights reserved.</p>
+    </footer>
 
-  <main>
-    <div class="card">
-      <h2>New Asset</h2>
-      <p>Fill in the details of the asset that you want to add to SmartAsset.</p>
-
-      <form id="assetForm">
-        <div class="field-row">
-          <label for="assetId">Asset ID</label>
-          <input id="assetId" type="text" placeholder="001" required />
-        </div>
-
-        <div class="field-row">
-          <label for="assetName">Name</label>
-          <input id="assetName" type="text" placeholder="Dell Latitude 5420" required />
-        </div>
-
-        <div class="field-row">
-          <label for="category">Category</label>
-          <select id="category" required>
-            <option value="">Select category</option>
-            <option value="Laptop">Laptop</option>
-            <option value="Desktop">Desktop</option>
-            <option value="Mobile">Mobile</option>
-            <option value="Printer">Printer</option>
-            <option value="Network">Network</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label for="owner">Owner</label>
-          <input id="owner" type="text" placeholder="Alice" required />
-        </div>
-
-        <div class="field-row">
-          <label for="status">Status</label>
-          <select id="status" required>
-            <option value="">Select status</option>
-            <option value="In Use">In Use</option>
-            <option value="Available">Available</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Retired">Retired</option>
-          </select>
-        </div>
-
-        <div class="actions">
-          <button type="submit" class="btn-primary">Save Asset</button>
-          <button type="button" id="cancelBtn" class="btn-outline">Cancel</button>
-        </div>
-
-        <div id="message" class="message"></div>
-      </form>
-    </div>
-  </main>
-
-  <footer>
-    &copy; 2025 SmartAsset. All rights reserved.
-  </footer>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import {
-      getAuth,
-      onAuthStateChanged,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI",
-      authDomain: "smartasset-d18c0.firebaseapp.com",
-      projectId: "smartasset-d18c0",
-      storageBucket: "smartasset-d18c0.firebasestorage.app",
-      messagingSenderId: "345539034912",
-      appId: "1:345539034912:web:e8f8a36e317f37d090e145"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const userEmailSpan = document.getElementById("userEmail");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const form = document.getElementById("assetForm");
-    const cancelBtn = document.getElementById("cancelBtn");
-    const messageDiv = document.getElementById("message");
-
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        await signOut(auth);
-      } catch (err) {
-        console.error("Logout error:", err);
-      } finally {
-        window.location.href = "login.html";
-      }
-    });
-
-    cancelBtn.addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
-
-    async function saveAsset(evt) {
-      evt.preventDefault();
-      messageDiv.textContent = "";
-      messageDiv.className = "message";
-
-      const assetId = document.getElementById("assetId").value.trim();
-      const name = document.getElementById("assetName").value.trim();
-      const category = document.getElementById("category").value.trim();
-      const owner = document.getElementById("owner").value.trim();
-      const status = document.getElementById("status").value.trim();
-
-      if (!assetId || !name || !category || !owner || !status) {
-        messageDiv.textContent = "Please fill in all fields.";
-        messageDiv.classList.add("error");
-        return;
-      }
-
-      try {
-        await addDoc(collection(db, "assets"), {
-          assetId,
-          name,
-          category,
-          owner,
-          status,
-          createdAt: serverTimestamp()
-        });
-
-        messageDiv.textContent = "Asset added successfully.";
-        messageDiv.classList.add("success");
-
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 800);
-      } catch (err) {
-        console.error(err);
-        messageDiv.textContent = "Error saving asset: " + err.message;
-        messageDiv.classList.add("error");
-      }
-    }
-
-    form.addEventListener("submit", saveAsset);
-
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        alert("You must be logged in.");
-        window.location.href = "login.html";
-        return;
-      }
-
-      const email = user.email || "";
-      userEmailSpan.textContent = email;
-
-      if (email !== "admin@go-aheadsingapore.com") {
-        alert("Access denied. Admin only.");
-        window.location.href = "login.html";
-        return;
-      }
-    });
-  </script>
+    <script type="module" src="admin.js"></script>
 </body>
 </html>
