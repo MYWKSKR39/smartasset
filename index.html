@@ -14,6 +14,8 @@
       display:flex;
       flex-direction:column;
     }
+
+    /* Top bar */
     .navbar{
       background:#222;
       color:#fff;
@@ -32,12 +34,14 @@
       height:4px;border-radius:2px;
       background:#fff;display:block;
     }
+
+    /* Hero */
     .hero{
       background:#007bff;color:#fff;
       text-align:center;
       padding:3rem 1rem 2.2rem 1rem;
     }
-    .hero h1{font-size:2.1rem;margin-bottom:0.6rem}
+    .hero h1{font-size:2.2rem;margin-bottom:0.6rem}
     .hero p{font-size:1rem;opacity:0.9;margin-bottom:1.2rem}
     .hero .user-bar{
       margin-top:0.5rem;font-size:0.95rem;
@@ -58,14 +62,18 @@
       cursor:pointer;
     }
     .btn:hover{background:rgba(255,255,255,0.12)}
+
+    /* Main layout */
     main{
       flex:1;display:flex;
       justify-content:center;
-      padding:2rem 1rem 3rem 1rem;
+      padding:2rem 1.5rem 3rem 1.5rem;
     }
     .content-wrapper{
-      width:100%;max-width:1200px;
-      display:flex;flex-direction:column;
+      width:100%;
+      max-width:1600px; /* more horizontal room */
+      display:flex;
+      flex-direction:column;
       gap:1.5rem;
     }
     .cards-row{
@@ -73,16 +81,20 @@
       flex-wrap:wrap;
       gap:1.5rem;
       justify-content:center;
+      align-items:stretch;  /* equal height cards */
     }
     .card-half{
       flex:1;
-      min-width:550px;
+      min-width:700px;  /* wider cards */
     }
+
     .content-card{
       background:#fff;
-      border-radius:8px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      border-radius:10px;
+      box-shadow:0 3px 12px rgba(0,0,0,0.08);
       padding:1.3rem 1.4rem 1.6rem 1.4rem;
+      display:flex;
+      flex-direction:column;
       height:100%;
     }
     .content-header{
@@ -91,7 +103,7 @@
       margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
     }
     .content-header h2{
-      margin:0;font-size:1.5rem;
+      margin:0;font-size:1.6rem;
     }
     .actions{
       display:flex;gap:0.5rem;
@@ -100,30 +112,40 @@
     }
     .btn-secondary{
       background:#007bff;color:#fff;border:none;
-      padding:0.4rem 0.9rem;
-      border-radius:4px;
+      padding:0.45rem 1.1rem;
+      border-radius:5px;
       font-size:0.9rem;
       cursor:pointer;
     }
     .btn-secondary:hover{background:#0065cf}
+
+    /* Tables */
     .table-wrapper{
-      border-radius:4px;
+      border-radius:6px;
       overflow-x:visible;
-      overflow-y:visible;
+      overflow-y:auto;
       background:#fff;
+      flex:1;
     }
     table{
-      width:100%;border-collapse:collapse;
-      font-size:0.95rem;
+      width:100%;
+      border-collapse:collapse;
+      font-size:0.94rem;
     }
     thead{background:#222;color:#fff}
-    th,td{padding:0.75rem 1rem;text-align:left}
-    tbody tr:nth-child(even){background:#f3f3f3}
+    th,td{
+      padding:0.7rem 0.8rem;
+      text-align:left;
+      vertical-align:top;
+      word-break:break-word; /* wrap long text */
+    }
+    tbody tr:nth-child(even){background:#f5f5f5}
     tbody tr:nth-child(odd){background:#fff}
+
     .btn-table{
-      font-size:0.85rem;padding:0.25rem 0.6rem;
+      font-size:0.83rem;padding:0.25rem 0.6rem;
       border-radius:4px;border:none;cursor:pointer;
-      margin-right:0.25rem;
+      margin-right:0.2rem;
     }
     .btn-edit{background:#1976d2;color:#fff}
     .btn-edit:hover{background:#0d47a1}
@@ -133,11 +155,13 @@
     .btn-approve:hover{background:#2e7d32}
     .btn-reject{background:#fb8c00;color:#fff}
     .btn-reject:hover{background:#ef6c00}
+
     .status-chip{
-      padding:0.15rem 0.5rem;
+      padding:0.15rem 0.55rem;
       border-radius:999px;
       font-size:0.8rem;
       display:inline-block;
+      white-space:nowrap;
     }
     .status-pending{background:#fff3cd;color:#856404}
     .status-approved{background:#e8f5e9;color:#2e7d32}
@@ -145,18 +169,24 @@
     .no-actions{
       font-size:0.85rem;
       color:#666;
+      white-space:nowrap;
     }
+
     footer{
       text-align:center;
       padding:1rem 0.5rem 1.4rem 0.5rem;
       font-size:0.9rem;color:#555;
       background:#f5f5f5;border-top:1px solid #ddd;
     }
+
+    @media (max-width:1200px){
+      .card-half{min-width:100%}
+    }
     @media (max-width:640px){
       .content-header{flex-direction:column;align-items:flex-start}
       th,td{padding:0.6rem 0.5rem}
       .actions{width:100%;justify-content:flex-start}
-      .card-half{min-width:100%}
+      .hero h1{font-size:1.7rem}
     }
   </style>
 </head>
