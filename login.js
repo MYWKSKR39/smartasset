@@ -8,98 +8,116 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
+const ADMIN_ID = "admin";
+const ADMIN_EMAIL = "admin@smartasset.com";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 const loginForm = document.getElementById("loginForm");
-const userInput = document.getElementById("userInput");      // email or 5-digit ID
+const userInput = document.getElementById("userInput");      // admin ID, employee ID, or email
 const passwordInput = document.getElementById("passwordInput");
 const resetBtn = document.getElementById("resetBtn");
 const loginMessage = document.getElementById("loginMessage");
-
-// already logged in, redirect to correct page
-onAuthStateChanged(auth, (user) => {
-  if (!user) return;
-
-  if (user.email === "admin@go-aheadsingapore.com") {
-    window.location.href = "index.html";
-  } else {
-    window.location.href = "employee.html";
-  }
-});
 
 // helper: turn 5 digit ID into internal email
 function idToEmail(id) {
   return `${id}@smartasset.com`;
 }
 
-// login handler
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  loginMessage.textContent = "";
+// show message helper
+function showMessage(text, color) {
+  if (!loginMessage) return;
+  loginMessage.textContent = text;
+  loginMessage.style.color = color;
+}
 
-  const rawUser = userInput.value.trim();
-  const password = passwordInput.value;
+// already logged in, redirect to correct page
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
 
-  if (!rawUser || !password) {
-    loginMessage.textContent = "Please enter your ID/email and password.";
-    loginMessage.style.color = "red";
-    return;
+  if (user.email === ADMIN_EMAIL) {
+    window.location.href = "index.html";
+  } else {
+    window.location.href = "employee.html";
   }
+});
 
-  let emailToUse = rawUser;
+// login handler
+if (loginForm) {
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    showMessage("", "");
 
-  // if it does not contain '@', treat as 5 digit employee ID
-  if (!rawUser.includes("@")) {
-    if (!/^\d{5}$/.test(rawUser)) {
-      loginMessage.textContent = "Employee ID must be 5 digits.";
-      loginMessage.style.color = "red";
+    const rawUser = userInput.value.trim().toLowerCase();
+    const password = passwordInput.value;
+
+    if (!rawUser || !password) {
+      showMessage("Please enter your ID or email and password.", "red");
       return;
     }
-    emailToUse = idToEmail(rawUser);
-  }
 
-  try {
-    const cred = await signInWithEmailAndPassword(auth, emailToUse, password);
-    const user = cred.user;
+    let emailToUse = rawUser;
 
-    if (user.email === "admin@go-aheadsingapore.com") {
-      window.location.href = "index.html";
-    } else {
-      window.location.href = "employee.html";
+    if (!rawUser.includes("@")) {
+      // admin login using ID "admin"
+      if (rawUser === ADMIN_ID) {
+        emailToUse = ADMIN_EMAIL;
+      } else {
+        // employee login using 5 digit ID
+        if (!/^\d{5}$/.test(rawUser)) {
+          showMessage("Employee ID must be 5 digits.", "red");
+          return;
+        }
+        emailToUse = idToEmail(rawUser);
+      }
     }
-  } catch (err) {
-    console.error(err);
-    loginMessage.textContent = "Login error: " + (err.code || err.message);
-    loginMessage.style.color = "red";
-  }
-});
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, emailToUse, password);
+      const user = cred.user;
+
+      if (user.email === ADMIN_EMAIL) {
+        window.location.href = "index.html";
+      } else {
+        window.location.href = "employee.html";
+      }
+    } catch (err) {
+      console.error(err);
+      showMessage("Login error: " + (err.code || err.message), "red");
+    }
+  });
+}
 
 // reset password button
-resetBtn.addEventListener("click", async () => {
-  loginMessage.textContent = "";
-  const rawUser = userInput.value.trim();
+if (resetBtn) {
+  resetBtn.addEventListener("click", async () => {
+    showMessage("", "");
+    const rawUser = userInput.value.trim().toLowerCase();
 
-  if (!rawUser) {
-    loginMessage.textContent = "Enter your email to reset password.";
-    loginMessage.style.color = "red";
-    return;
-  }
+    if (!rawUser) {
+      showMessage("Enter your email or admin ID to reset password.", "red");
+      return;
+    }
 
-  // for safety, allow reset only for real emails
-  if (!rawUser.includes("@")) {
-    loginMessage.textContent = "Ask admin to reset your password for 5 digit IDs.";
-    loginMessage.style.color = "red";
-    return;
-  }
+    let emailForReset = rawUser;
 
-  try {
-    await sendPasswordResetEmail(auth, rawUser);
-    loginMessage.textContent = "Password reset email sent.";
-    loginMessage.style.color = "green";
-  } catch (err) {
-    console.error(err);
-    loginMessage.textContent = "Error sending reset email: " + (err.code || err.message);
-    loginMessage.style.color = "red";
-  }
-});
+    if (!rawUser.includes("@")) {
+      // allow reset for admin ID only
+      if (rawUser === ADMIN_ID) {
+        emailForReset = ADMIN_EMAIL;
+      } else {
+        showMessage("Ask admin to reset your password for employee IDs.", "red");
+        return;
+      }
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, emailForReset);
+      showMessage("Password reset email sent.", "green");
+    } catch (err) {
+      console.error(err);
+      showMessage("Error sending reset email: " + (err.code || err.message), "red");
+    }
+  });
+}
