@@ -1,6 +1,4 @@
 // admin.js
-// Logic for admin dashboard (index.html)
-
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
@@ -12,46 +10,49 @@ import {
 import {
   getFirestore,
   collection,
-  getDocs,
   doc,
-  getDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  deleteDoc,
   updateDoc,
-  deleteDoc
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-// ----- Firebase init -----
+const ADMIN_EMAIL = "admin@smartasset.com";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ----- DOM elements -----
+// DOM references
 const userEmailSpan = document.getElementById("userEmail");
 const logoutBtn = document.getElementById("logoutBtn");
 
-const assetTbody = document.getElementById("assetTableBody");
-const requestTbody = document.getElementById("requestTableBody");
 const addAssetBtn = document.getElementById("addAssetBtn");
+const assetTableBody = document.getElementById("assetTableBody");
+const requestTableBody = document.getElementById("requestTableBody");
 
 const newEmpIdInput = document.getElementById("newEmpId");
 const newEmpPasswordInput = document.getElementById("newEmpPassword");
 const createEmpBtn = document.getElementById("createEmpBtn");
 const createEmpMessage = document.getElementById("createEmpMessage");
 
-// allowed categories for assets
-const allowedCategories = ["Laptop", "Mobile", "IT", "Other"];
+// helper to show text under Create employee login
+function setEmpMessage(text, color) {
+  if (!createEmpMessage) return;
+  createEmpMessage.textContent = text;
+  createEmpMessage.style.color = color;
+}
 
-// status values you want to support
-const allowedStatuses = ["Available", "In Use", "Under Maintenance", "On loan", "Retired"];
-
-// ----- Auth guard -----
+// auth guard, only admin can stay here
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
 
-  // only admin should access this page
-  if (user.email !== "admin@go-aheadsingapore.com") {
+  if (user.email !== ADMIN_EMAIL) {
     window.location.href = "employee.html";
     return;
   }
@@ -60,308 +61,192 @@ onAuthStateChanged(auth, (user) => {
     userEmailSpan.textContent = user.email;
   }
 
-  // once we know it is admin, load dashboard data
-  if (assetTbody) {
-    initDashboard();
-  }
+  startAssetsListener();
+  startRequestsListener();
 });
 
-// ----- Logout -----
+// logout
 if (logoutBtn) {
   logoutBtn.addEventListener("click", async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      window.location.href = "login.html";
-    }
+    await signOut(auth);
   });
 }
 
-// ----- Add asset button -----
+// add asset button, simple redirect to add.html
 if (addAssetBtn) {
   addAssetBtn.addEventListener("click", () => {
     window.location.href = "add.html";
   });
 }
 
-// ----- Helper: map employee ID to internal email -----
-function employeeIdToEmail(empId) {
-  return `${empId}@smartasset.com`;
-}
+// listen to assets and fill admin table
+function startAssetsListener() {
+  if (!assetTableBody) return;
 
-// ----- Init dashboard -----
-function initDashboard() {
-  loadAssets();
-  loadBorrowRequests();
-  wireCreateEmployee();
-}
+  const colRef = collection(db, "assets");
+  const q = query(colRef, orderBy("assetId"));
 
-// ======================
-//  Assets table
-// ======================
+  onSnapshot(q, (snapshot) => {
+    assetTableBody.innerHTML = "";
 
-async function loadAssets() {
-  if (!assetTbody) return;
-
-  assetTbody.innerHTML = '<tr><td colspan="7">Loading assets...</td></tr>';
-
-  try {
-    const snap = await getDocs(collection(db, "assets"));
-    assetTbody.innerHTML = "";
-
-    if (snap.empty) {
-      assetTbody.innerHTML =
-        '<tr><td colspan="7">No assets found.</td></tr>';
+    if (snapshot.empty) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.textContent = "No assets found.";
+      tr.appendChild(td);
+      assetTableBody.appendChild(tr);
       return;
     }
 
-    snap.forEach((docSnap) => {
-      const a = docSnap.data() || {};
-
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
       const tr = document.createElement("tr");
+
+      const assetId = data.assetId || docSnap.id;
+      const name = data.name || "";
+      const category = data.category || "";
+      const owner = data.owner || "";
+      const location = data.location || "";
+      const status = data.status || "";
+
       tr.innerHTML = `
-        <td>${a.assetId || "-"}</td>
-        <td>${a.name || "-"}</td>
-        <td>${a.category || "-"}</td>
-        <td>${a.owner || "-"}</td>
-        <td>${a.location || "-"}</td>
-        <td>${a.status || "-"}</td>
+        <td>${assetId}</td>
+        <td>${name}</td>
+        <td>${category}</td>
+        <td>${owner}</td>
+        <td>${location}</td>
+        <td>${status}</td>
         <td>
-          <button class="btn-small btn-edit" data-id="${docSnap.id}">Edit</button>
-          <button class="btn-small btn-danger btn-remove" data-id="${docSnap.id}">Remove</button>
+          <button class="table-action-btn edit-btn">Edit</button>
+          <button class="table-action-btn delete-btn">Remove</button>
         </td>
       `;
-      assetTbody.appendChild(tr);
-    });
 
-    // attach events
-    assetTbody.querySelectorAll(".btn-edit").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-id");
-        editAsset(id);
-      });
-    });
+      const editBtn = tr.querySelector(".edit-btn");
+      const deleteBtn = tr.querySelector(".delete-btn");
 
-    assetTbody.querySelectorAll(".btn-remove").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-id");
-        removeAsset(id);
-      });
-    });
-  } catch (err) {
-    console.error("Error loading assets:", err);
-    assetTbody.innerHTML =
-      '<tr><td colspan="7">Error loading assets.</td></tr>';
-  }
-}
-
-// edit asset with prompts, including location
-async function editAsset(id) {
-  try {
-    const ref = doc(db, "assets", id);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) {
-      alert("Asset not found.");
-      return;
-    }
-
-    const a = snap.data() || {};
-
-    let assetId = prompt("Asset ID", a.assetId || "");
-    if (!assetId) return;
-    assetId = assetId.trim().toUpperCase();
-
-    let name = prompt("Name", a.name || "");
-    if (!name) return;
-    name = name.trim();
-
-    let category = prompt(
-      "Category (Laptop, Mobile, IT, Other)",
-      a.category || "Laptop"
-    );
-    if (!category) return;
-    category = category.trim();
-    if (!allowedCategories.includes(category)) {
-      alert("Invalid category. Keeping original category.");
-      category = a.category || "Laptop";
-    }
-
-    let owner = prompt("Owner", a.owner || "");
-    if (!owner) return;
-    owner = owner.trim();
-
-    let location = prompt("Location", a.location || "");
-    if (!location) return;
-    location = location.trim();
-
-    let status = prompt(
-      "Status (Available, In Use, Under Maintenance, On loan, Retired)",
-      a.status || "Available"
-    );
-    if (!status) return;
-    status = status.trim();
-    if (!allowedStatuses.includes(status)) {
-      alert("Invalid status. Keeping original status.");
-      status = a.status || "Available";
-    }
-
-    await updateDoc(ref, {
-      assetId,
-      name,
-      category,
-      owner,
-      location,
-      status
-    });
-
-    loadAssets();
-  } catch (err) {
-    console.error("Error updating asset:", err);
-    alert("Error updating asset.");
-  }
-}
-
-// remove asset
-async function removeAsset(id) {
-  const confirmDelete = confirm("Are you sure you want to remove this asset?");
-  if (!confirmDelete) return;
-
-  try {
-    await deleteDoc(doc(db, "assets", id));
-    loadAssets();
-  } catch (err) {
-    console.error("Error removing asset:", err);
-    alert("Error removing asset.");
-  }
-}
-
-// ======================
-//  Borrow requests table
-// ======================
-
-async function loadBorrowRequests() {
-  if (!requestTbody) return;
-
-  requestTbody.innerHTML =
-    '<tr><td colspan="7">Loading requests...</td></tr>';
-
-  try {
-    const snap = await getDocs(collection(db, "borrowRequests"));
-    requestTbody.innerHTML = "";
-
-    if (snap.empty) {
-      requestTbody.innerHTML =
-        '<tr><td colspan="7">No borrow requests yet.</td></tr>';
-      return;
-    }
-
-    snap.forEach((docSnap) => {
-      const r = docSnap.data() || {};
-      const status = r.status || "Pending";
-
-      let actionsHtml = "No actions";
-      if (status === "Pending") {
-        actionsHtml = `
-          <button class="btn-small btn-approve" data-id="${docSnap.id}">Approve</button>
-          <button class="btn-small btn-danger btn-reject" data-id="${docSnap.id}">Reject</button>
-        `;
+      if (editBtn) {
+        editBtn.addEventListener("click", () => {
+          window.location.href = `add.html?assetId=${encodeURIComponent(docSnap.id)}`;
+        });
       }
 
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", async () => {
+          const ok = confirm(`Remove asset ${assetId}?`);
+          if (!ok) return;
+          await deleteDoc(doc(db, "assets", docSnap.id));
+        });
+      }
+
+      assetTableBody.appendChild(tr);
+    });
+  });
+}
+
+// listen to borrow requests for admin view
+function startRequestsListener() {
+  if (!requestTableBody) return;
+
+  const colRef = collection(db, "borrowRequests");
+  const q = query(colRef, orderBy("createdAt", "desc"));
+
+  onSnapshot(q, (snapshot) => {
+    requestTableBody.innerHTML = "";
+
+    if (snapshot.empty) {
       const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.textContent = "No borrow requests yet.";
+      tr.appendChild(td);
+      requestTableBody.appendChild(tr);
+      return;
+    }
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const tr = document.createElement("tr");
+
       tr.innerHTML = `
-        <td>${r.assetId || "-"}</td>
-        <td>${r.requestedBy || "-"}</td>
-        <td>${r.startDate || "-"}</td>
-        <td>${r.endDate || "-"}</td>
-        <td>${r.reason || "-"}</td>
-        <td>${status}</td>
-        <td>${actionsHtml}</td>
+        <td>${data.assetId || ""}</td>
+        <td>${data.requestedBy || ""}</td>
+        <td>${data.startDate || ""}</td>
+        <td>${data.endDate || ""}</td>
+        <td>${data.reason || ""}</td>
+        <td>${data.status || ""}</td>
+        <td>
+          <button class="table-action-btn approve-btn">Approve</button>
+          <button class="table-action-btn reject-btn">Reject</button>
+        </td>
       `;
-      requestTbody.appendChild(tr);
-    });
 
-    // attach approve/reject events
-    requestTbody.querySelectorAll(".btn-approve").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-id");
-        updateRequestStatus(id, "Approved");
-      });
-    });
+      const approveBtn = tr.querySelector(".approve-btn");
+      const rejectBtn = tr.querySelector(".reject-btn");
 
-    requestTbody.querySelectorAll(".btn-reject").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-id");
-        updateRequestStatus(id, "Rejected");
-      });
+      if (approveBtn) {
+        approveBtn.addEventListener("click", async () => {
+          await updateDoc(doc(db, "borrowRequests", docSnap.id), {
+            status: "Approved",
+            reviewedAt: serverTimestamp()
+          });
+        });
+      }
+
+      if (rejectBtn) {
+        rejectBtn.addEventListener("click", async () => {
+          const note = prompt("Optional rejection reason", data.adminNote || "");
+          const update = {
+            status: "Rejected",
+            reviewedAt: serverTimestamp()
+          };
+          if (note && note.trim() !== "") {
+            update.adminNote = note.trim();
+          }
+          await updateDoc(doc(db, "borrowRequests", docSnap.id), update);
+        });
+      }
+
+      requestTableBody.appendChild(tr);
     });
-  } catch (err) {
-    console.error("Error loading borrow requests:", err);
-    requestTbody.innerHTML =
-      '<tr><td colspan="7">Error loading requests.</td></tr>';
-  }
+  });
 }
 
-async function updateRequestStatus(id, newStatus) {
-  const confirmText =
-    newStatus === "Approved"
-      ? "Approve this request?"
-      : "Reject this request?";
-  const ok = confirm(confirmText);
-  if (!ok) return;
-
-  try {
-    const ref = doc(db, "borrowRequests", id);
-    await updateDoc(ref, { status: newStatus });
-    loadBorrowRequests();
-  } catch (err) {
-    console.error("Error updating request:", err);
-    alert("Error updating request status.");
-  }
-}
-
-// ======================
-//  Create employee login
-// ======================
-
-function wireCreateEmployee() {
-  if (!createEmpBtn) return;
-
+// create employee login, admin only
+if (createEmpBtn) {
   createEmpBtn.addEventListener("click", async () => {
-    if (!newEmpIdInput || !newEmpPasswordInput || !createEmpMessage) return;
+    setEmpMessage("", "");
 
-    createEmpMessage.textContent = "";
+    const idRaw = newEmpIdInput.value.trim();
+    const password = newEmpPasswordInput.value;
 
-    const empId = (newEmpIdInput.value || "").trim();
-    const empPassword = newEmpPasswordInput.value || "";
-
-    if (!/^\d{5}$/.test(empId)) {
-      createEmpMessage.textContent = "Employee ID must be exactly 5 digits.";
-      createEmpMessage.style.color = "red";
+    if (!/^\d{5}$/.test(idRaw)) {
+      setEmpMessage("Employee ID must be 5 digits.", "red");
       return;
     }
 
-    if (empPassword.length < 6) {
-      createEmpMessage.textContent = "Password must be at least 6 characters.";
-      createEmpMessage.style.color = "red";
+    if (!password || password.length < 6) {
+      setEmpMessage("Password must be at least 6 characters.", "red");
       return;
     }
 
-    const empEmail = employeeIdToEmail(empId);
+    const email = `${idRaw}@smartasset.com`;
 
     try {
-      await createUserWithEmailAndPassword(auth, empEmail, empPassword);
-      createEmpMessage.textContent = `Employee account ${empId} created.`;
-      createEmpMessage.style.color = "green";
+      // use a secondary app so admin does not get logged out
+      const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+      const secondaryAuth = getAuth(secondaryApp);
+
+      await createUserWithEmailAndPassword(secondaryAuth, email, password);
+
+      setEmpMessage(`Employee account created for ${email}.`, "green");
 
       newEmpIdInput.value = "";
       newEmpPasswordInput.value = "";
     } catch (err) {
-      console.error("Error creating employee account:", err);
-      createEmpMessage.textContent = "Error: " + (err.code || err.message);
-      createEmpMessage.style.color = "red";
+      console.error(err);
+      setEmpMessage("Error creating employee: " + (err.code || err.message), "red");
     }
   });
 }
