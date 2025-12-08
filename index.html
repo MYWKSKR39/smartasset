@@ -136,15 +136,10 @@
     © 2025 SmartAsset. All rights reserved.
   </footer>
 
-  <!-- Admin logic and map callback wiring -->
-  <script type="module">
-    import { initDeviceMap } from "./admin.js";
+  <!-- Admin logic -->
+  <script type="module" src="admin.js"></script>
 
-    // Expose the function for the Google Maps callback
-    window.initDeviceMap = initDeviceMap;
-  </script>
-
-  <!-- Google Maps JavaScript API -->
+  <!-- Google Maps JavaScript API, calls global window.initDeviceMap defined in admin.js -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI&callback=initDeviceMap"
     async
