@@ -136,18 +136,20 @@
     © 2025 SmartAsset. All rights reserved.
   </footer>
 
-<!-- Google Maps JavaScript API -->
-<script 
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI&callback=initDeviceMap" 
-    async 
-    defer>
-</script>
+  <!-- Admin logic and map callback wiring -->
+  <script type="module">
+    import { initDeviceMap } from "./admin.js";
 
+    // Expose the function for the Google Maps callback
+    window.initDeviceMap = initDeviceMap;
+  </script>
 
-  <!-- Admin logic -->
-  <script type="module" src="admin.js"></script>
+  <!-- Google Maps JavaScript API -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI&callback=initDeviceMap"
+    async
+    defer
+  ></script>
+
 </body>
 </html>
-
-
-
