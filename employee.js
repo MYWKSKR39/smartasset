@@ -1,4 +1,4 @@
-// js/employee.js
+// employee.js
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
@@ -9,175 +9,198 @@ import {
 import {
   getFirestore,
   collection,
-  getDocs,
+  doc,
   addDoc,
+  onSnapshot,
   query,
   where,
   orderBy,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
+const ADMIN_EMAIL = "admin@smartasset.com";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// DOM references
 const userEmailSpan = document.getElementById("userEmail");
 const logoutBtn = document.getElementById("logoutBtn");
-const assetTbody = document.getElementById("assetTableBody");
-const myReqTbody = document.getElementById("myRequestTableBody");
 
-const borrowForm = document.getElementById("borrowForm");
-const assetIdInput = document.getElementById("assetIdInput");
-const startDateInput = document.getElementById("startDateInput");
-const endDateInput = document.getElementById("endDateInput");
-const reasonInput = document.getElementById("reasonInput");
-const borrowMessage = document.getElementById("borrowMessage");
+const assetTableBody = document.getElementById("assetTableBody");
+const myRequestsTableBody = document.getElementById("myRequestsTableBody");
 
-// logout
-logoutBtn.addEventListener("click", async () => {
-  try{
-    await signOut(auth);
-  }catch(e){
-    console.error(e);
-  }finally{
-    window.location.href = "login.html";
-  }
-});
+const requestForm = document.getElementById("borrowForm");
+const assetIdInput = document.getElementById("borrowAssetId");
+const startDateInput = document.getElementById("startDate");
+const endDateInput = document.getElementById("endDate");
+const reasonInput = document.getElementById("reason");
+const requestMessage = document.getElementById("requestMessage");
 
-// load assets
-async function loadAssets(){
-  assetTbody.innerHTML = '<tr><td colspan="6">Loading assets...</td></tr>';
-  try{
-    const snap = await getDocs(collection(db,"assets"));
-    assetTbody.innerHTML = "";
-    if (snap.empty){
-      assetTbody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
-      return;
-    }
-    snap.forEach(docSnap => {
-      const a = docSnap.data() || {};
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${a.assetId || "-"}</td>
-        <td>${a.name || "-"}</td>
-        <td>${a.category || "-"}</td>
-        <td>${a.owner || "-"}</td>
-        <td>${a.location || "-"}</td>
-        <td>${a.status || "-"}</td>
-      `;
-      assetTbody.appendChild(tr);
-    });
-  }catch(err){
-    console.error(err);
-    assetTbody.innerHTML = '<tr><td colspan="6">Error loading assets.</td></tr>';
-  }
+let currentUserEmail = null;
+
+// helper for status text under the form
+function setRequestMessage(text, color) {
+  if (!requestMessage) return;
+  requestMessage.textContent = text;
+  requestMessage.style.color = color;
 }
 
-// load current user's requests
-async function loadMyRequests(email){
-  myReqTbody.innerHTML = '<tr><td colspan="5">Loading requests...</td></tr>';
-  try{
-    const qReq = query(
-      collection(db,"borrowRequests"),
-      where("requestedBy","==",email),
-      orderBy("createdAt","desc")
-    );
-    const snap = await getDocs(qReq);
-    myReqTbody.innerHTML = "";
-    if (snap.empty){
-      myReqTbody.innerHTML = '<tr><td colspan="5">You have no requests yet.</td></tr>';
-      return;
-    }
-    snap.forEach(docSnap => {
-      const r = docSnap.data() || {};
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.assetId || "-"}</td>
-        <td>${r.startDate || "-"}</td>
-        <td>${r.endDate || "-"}</td>
-        <td>${r.reason || "-"}</td>
-        <td>${r.status || "Pending"}</td>
-      `;
-      myReqTbody.appendChild(tr);
-    });
-  }catch(err){
-    console.error(err);
-    myReqTbody.innerHTML = '<tr><td colspan="5">Error loading requests.</td></tr>';
-  }
-}
-
-// submit borrow request
-borrowForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  borrowMessage.textContent = "";
-
-  const assetIdRaw = assetIdInput.value.trim();
-  const startDate = startDateInput.value;
-  const endDate = endDateInput.value;
-  const reason = reasonInput.value.trim();
-
-  if (!assetIdRaw || !startDate || !endDate){
-    borrowMessage.textContent = "Please fill in asset ID and both dates.";
-    borrowMessage.style.color = "red";
-    return;
-  }
-
-  if (endDate < startDate){
-    borrowMessage.textContent = "End date cannot be earlier than start date.";
-    borrowMessage.style.color = "red";
-    return;
-  }
-
-  const user = auth.currentUser;
-  if (!user){
-    borrowMessage.textContent = "You must be logged in.";
-    borrowMessage.style.color = "red";
-    return;
-  }
-
-  const assetId = assetIdRaw.toUpperCase();
-
-  try{
-    await addDoc(collection(db,"borrowRequests"), {
-      assetId,
-      requestedBy: user.email || "",
-      startDate,
-      endDate,
-      reason,
-      status: "Pending",
-      createdAt: serverTimestamp()
-    });
-    borrowMessage.textContent = "Request submitted.";
-    borrowMessage.style.color = "green";
-
-    // clear form
-    reasonInput.value = "";
-    // keep dates and asset id if you want, or clear them
-    // assetIdInput.value = "";
-    // startDateInput.value = "";
-    // endDateInput.value = "";
-
-    // refresh my requests
-    loadMyRequests(user.email || "");
-  }catch(err){
-    console.error(err);
-    borrowMessage.textContent = "Error submitting request.";
-    borrowMessage.style.color = "red";
-  }
-});
-
-// auth guard
+// auth guard, redirect admin away from this page
 onAuthStateChanged(auth, (user) => {
-  if (!user){
+  if (!user) {
     window.location.href = "login.html";
     return;
   }
-  // admin should not use employee page
-  if (user.email === "admin@go-aheadsingapore.com"){
+
+  if (user.email === ADMIN_EMAIL) {
     window.location.href = "index.html";
     return;
   }
-  userEmailSpan.textContent = user.email || "";
-  loadAssets();
-  loadMyRequests(user.email || "");
+
+  currentUserEmail = user.email;
+
+  if (userEmailSpan) {
+    userEmailSpan.textContent = user.email;
+  }
+
+  startAssetsListener();
+  startMyRequestsListener();
 });
+
+// logout
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+  });
+}
+
+// show all assets in top table
+function startAssetsListener() {
+  if (!assetTableBody) return;
+
+  const colRef = collection(db, "assets");
+  const q = query(colRef, orderBy("assetId"));
+
+  onSnapshot(q, (snapshot) => {
+    assetTableBody.innerHTML = "";
+
+    if (snapshot.empty) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 6;
+      td.textContent = "No assets found.";
+      tr.appendChild(td);
+      assetTableBody.appendChild(tr);
+      return;
+    }
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const tr = document.createElement("tr");
+
+      const assetId = data.assetId || docSnap.id;
+      const name = data.name || "";
+      const category = data.category || "";
+      const owner = data.owner || "";
+      const location = data.location || "";
+      const status = data.status || "";
+
+      tr.innerHTML = `
+        <td>${assetId}</td>
+        <td>${name}</td>
+        <td>${category}</td>
+        <td>${owner}</td>
+        <td>${location}</td>
+        <td>${status}</td>
+      `;
+
+      assetTableBody.appendChild(tr);
+    });
+  });
+}
+
+// show only this user's requests in bottom table
+function startMyRequestsListener() {
+  if (!myRequestsTableBody || !currentUserEmail) return;
+
+  const colRef = collection(db, "borrowRequests");
+  const q = query(
+    colRef,
+    where("requestedBy", "==", currentUserEmail),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(q, (snapshot) => {
+    myRequestsTableBody.innerHTML = "";
+
+    if (snapshot.empty) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      td.textContent = "You have no requests yet.";
+      tr.appendChild(td);
+      myRequestsTableBody.appendChild(tr);
+      return;
+    }
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${data.assetId || ""}</td>
+        <td>${data.startDate || ""}</td>
+        <td>${data.endDate || ""}</td>
+        <td>${data.reason || ""}</td>
+        <td>${data.status || ""}</td>
+      `;
+
+      myRequestsTableBody.appendChild(tr);
+    });
+  });
+}
+
+// handle submit of new borrow request
+if (requestForm) {
+  requestForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setRequestMessage("", "");
+
+    const assetId = assetIdInput.value.trim();
+    const start = startDateInput.value;
+    const end = endDateInput.value;
+    const reason = reasonInput.value.trim();
+
+    if (!assetId || !start || !end) {
+      setRequestMessage("Please fill in asset ID, start date and end date.", "red");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "borrowRequests"), {
+        assetId,
+        startDate: start,
+        endDate: end,
+        reason,
+        requestedBy: currentUserEmail,
+        status: "Pending",
+        createdAt: serverTimestamp()
+      });
+
+      setRequestMessage("Request submitted.", "green");
+
+      assetIdInput.value = "";
+      startDateInput.value = "";
+      endDateInput.value = "";
+      reasonInput.value = "";
+    } catch (err) {
+      console.error(err);
+      setRequestMessage(
+        "Error submitting request: " + (err.code || err.message),
+        "red"
+      );
+    }
+  });
+}
