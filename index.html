@@ -111,6 +111,24 @@
         <p id="createEmpMessage" class="helper-text"></p>
       </section>
 
+      <!-- Live device locations on map -->
+      <section class="content-card full-width-card">
+        <div class="content-header">
+          <h2>Live device locations</h2>
+          <button id="toggleMapBtn" class="primary-btn">Show map</button>
+        </div>
+
+        <div id="mapSection" style="display:none; margin-top:1rem;">
+          <div
+            id="deviceMap"
+            style="width:100%; height:400px; border-radius:8px;"
+          ></div>
+          <p id="mapStatus" class="helper-text" style="margin-top:0.5rem;">
+            Waiting for location data...
+          </p>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -118,6 +136,13 @@
     © 2025 SmartAsset. All rights reserved.
   </footer>
 
+  <!-- Google Maps JavaScript API (replace key with your own) -->
+  <script
+    async
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_WEB_MAPS_API_KEY_HERE&callback=initDeviceMap"
+  ></script>
+
+  <!-- Admin logic -->
   <script type="module" src="admin.js"></script>
 </body>
 </html>
