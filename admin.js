@@ -303,7 +303,7 @@ function setupMapUi() {
   });
 }
 
-// called by Google Maps callback in index.html
+// optional - no longer used as a callback but harmless to keep
 function initDeviceMap() {
   initDeviceMapInternal();
 }
@@ -359,10 +359,30 @@ function initDeviceMapInternal() {
         const position = { lat, lng };
         let marker = markerMap.get(id);
 
-        const title =
+        const batteryPct = data.batteryPct;
+        const batteryTempC = data.batteryTempC;
+        const ts = data.timestamp?.toDate?.();
+
+        let title =
           data.label ||
           data.deviceName ||
-          `Device ${id} (last update ${data.timestamp?.toDate?.() || ""})`;
+          `Device ${id}`;
+
+        const parts = [];
+
+        if (typeof batteryPct === "number") {
+          parts.push(`Battery ${batteryPct}%`);
+        }
+        if (typeof batteryTempC === "number") {
+          parts.push(`Temp ${batteryTempC.toFixed(1)}°C`);
+        }
+        if (ts) {
+          parts.push(`Updated ${ts.toLocaleString()}`);
+        }
+
+        if (parts.length > 0) {
+          title += " (" + parts.join(", ") + ")";
+        }
 
         if (!marker) {
           marker = new google.maps.Marker({
