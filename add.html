@@ -2,93 +2,78 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SmartAsset - Add Asset</title>
+  <title>SmartAsset - Add asset</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Page specific styles -->
-  <link rel="stylesheet" href="add.css" />
+  <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-
-  <!-- Top hero header -->
   <header class="hero">
-    <h1>Add Asset</h1>
-    <p>Fill in the details of the asset you want to add to SmartAsset.</p>
+    <h1>Add or edit asset</h1>
+    <p>Fill in the asset details and save</p>
 
     <div class="user-bar">
       <span class="pill">
         Logged in as:
         <span id="userEmail">Loading...</span>
       </span>
-      <button id="logoutBtn" class="primary-btn">Logout</button>
+      <button id="backBtn" class="btn-hero">Back to dashboard</button>
+      <button id="logoutBtn" class="btn-hero">Logout</button>
     </div>
   </header>
 
-  <!-- Main card -->
   <main>
-    <div class="container">
-      <h2>New Asset</h2>
-
-      <form id="addAssetForm" onsubmit="return false;">
-
-        <label for="assetId">Asset ID</label>
-        <input
-          type="text"
-          id="assetId"
-          placeholder="e.g. IT00923"
-          required
-        />
-
-        <label for="assetName">Name</label>
-        <input
-          type="text"
-          id="assetName"
-          placeholder="e.g. Dell Latitude 5420"
-          required
-        />
-
-        <label for="assetCategory">Category</label>
-        <select id="assetCategory" required>
-          <option value="">Select category</option>
-          <option value="Laptop">Laptop</option>
-          <option value="Mobile">Mobile</option>
-          <option value="IT">IT</option>
-          <option value="Other">Other</option>
-        </select>
-
-        <label for="assetOwner">Owner</label>
-        <input
-          type="text"
-          id="assetOwner"
-          placeholder="e.g. IT Department"
-          required
-        />
-
-        <label for="assetLocation">Location</label>
-        <input
-          type="text"
-          id="assetLocation"
-          placeholder="e.g. Punggol interchange"
-          required
-        />
-
-        <label for="assetStatus">Status</label>
-        <select id="assetStatus" required>
-          <option value="">Select status</option>
-          <option value="Available">Available</option>
-          <option value="In Use">In Use</option>
-          <option value="Under Maintenance">Under Maintenance</option>
-        </select>
-
-        <div class="button-row">
-          <button id="saveAssetBtn" class="primary-btn">
-            Save Asset
-          </button>
-          <button id="cancelBtn" type="button" class="cancel-btn">
-            Cancel
-          </button>
+    <div class="content-wrapper">
+      <section class="content-card full-width-card">
+        <div class="content-header">
+          <h2 id="formTitle">New asset</h2>
         </div>
 
-      </form>
+        <form id="assetForm" class="asset-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="assetId">Asset ID</label>
+              <input id="assetId" type="text" placeholder="e.g. IT00123" required />
+            </div>
+
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input id="name" type="text" placeholder="e.g. Pixel 6 Pro" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="category">Category</label>
+              <input id="category" type="text" placeholder="Laptop, Mobile, etc." />
+            </div>
+
+            <div class="form-group">
+              <label for="owner">Owner / department</label>
+              <input id="owner" type="text" placeholder="IT, HR, John, etc." />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="location">Location</label>
+              <input id="location" type="text" placeholder="e.g. Pasir ris interchange" />
+            </div>
+
+            <div class="form-group">
+              <label for="status">Status</label>
+              <input id="status" type="text" placeholder="Active, In repair, etc." />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <button id="saveBtn" class="primary-btn" type="submit">
+              Save asset
+            </button>
+          </div>
+
+          <p id="formMessage" class="helper-text"></p>
+        </form>
+      </section>
     </div>
   </main>
 
@@ -96,7 +81,6 @@
     © 2025 SmartAsset. All rights reserved.
   </footer>
 
-  <!-- Logic for this page -->
   <script type="module" src="add.js"></script>
 </body>
 </html>
