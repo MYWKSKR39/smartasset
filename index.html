@@ -86,29 +86,35 @@
         </section>
       </div>
 
-      <!-- Create employee login card (full width) -->
+      <!-- Employee accounts card with hidden create menu -->
       <section class="content-card full-width-card">
         <div class="content-header">
-          <h2>Create employee login</h2>
+          <h2>Employee accounts</h2>
+          <button id="toggleEmpMenu" class="primary-btn">
+            Create employee login
+          </button>
         </div>
 
-        <div class="form-inline-row">
-          <div class="form-group">
-            <label for="newEmpId">Employee ID (5 digits)</label>
-            <input id="newEmpId" type="text" placeholder="e.g. 12345" />
+        <!-- Hidden menu -->
+        <div id="employeeMenu" style="display:none; margin-top:1rem;">
+          <div class="form-inline-row">
+            <div class="form-group">
+              <label for="newEmpId">Employee ID (5 digits)</label>
+              <input id="newEmpId" type="text" placeholder="e.g. 12345" />
+            </div>
+
+            <div class="form-group">
+              <label for="newEmpPassword">Password</label>
+              <input id="newEmpPassword" type="password" placeholder="Set password" />
+            </div>
+
+            <div class="form-group">
+              <button id="createEmpBtn" class="primary-btn">Create employee account</button>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="newEmpPassword">Password</label>
-            <input id="newEmpPassword" type="password" placeholder="Set password" />
-          </div>
-
-          <div class="form-group">
-            <button id="createEmpBtn" class="primary-btn">Create employee account</button>
-          </div>
+          <p id="createEmpMessage" class="helper-text"></p>
         </div>
-
-        <p id="createEmpMessage" class="helper-text"></p>
       </section>
 
       <!-- Live device locations on map -->
@@ -139,7 +145,7 @@
   <!-- Admin logic -->
   <script type="module" src="admin.js"></script>
 
-  <!-- Google Maps JavaScript API, calls global window.initDeviceMap defined in admin.js -->
+  <!-- Google Maps JavaScript API -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoYt0CThkE6uPKODEDwh0FNH3vA_VADsI"
     async
@@ -148,4 +154,3 @@
 
 </body>
 </html>
-
