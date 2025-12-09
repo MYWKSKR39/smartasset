@@ -253,7 +253,6 @@ if (createEmpBtn) {
     const email = `${idRaw}@smartasset.com`;
 
     try {
-      // use a secondary app so admin does not get logged out
       const secondaryApp = initializeApp(firebaseConfig, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
       await createUserWithEmailAndPassword(secondaryAuth, email, password);
@@ -292,13 +291,10 @@ function setupMapUi() {
       mapSection.style.display = "block";
       toggleMapBtn.textContent = "Hide map";
 
-      // Map is visible, ensure it is initialised
       if (typeof window.google !== "undefined") {
         initDeviceMapInternal();
-      } else {
-        if (mapStatus) {
-          mapStatus.textContent = "Loading map script...";
-        }
+      } else if (mapStatus) {
+        mapStatus.textContent = "Loading map script...";
       }
     }
   });
@@ -318,13 +314,13 @@ function initDeviceMapInternal() {
 
   if (!mapInstance) {
     mapInstance = new google.maps.Map(mapDiv, {
-      center: { lat: 1.3521, lng: 103.8198 }, // Singapore default
+      center: { lat: 1.3521, lng: 103.8198 },
       zoom: 12,
     });
     infoWindow = new google.maps.InfoWindow();
   }
 
-  if (locationsUnsub) return; // already listening
+  if (locationsUnsub) return;
 
   const colRef = collection(db, "deviceLocations");
 
@@ -365,30 +361,29 @@ function initDeviceMapInternal() {
         const batteryTempC = data.batteryTempC;
         const ts = data.timestamp?.toDate?.();
 
-        const baseLabel =
+        const label =
           data.label ||
           data.deviceName ||
           `Device ${id}`;
 
-        const parts = [];
+        const infoLines = [];
+
+        infoLines.push(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
 
         if (typeof batteryPct === "number") {
-          parts.push(`Battery ${batteryPct}%`);
+          infoLines.push(`Battery: ${batteryPct}%`);
         }
         if (typeof batteryTempC === "number") {
-          parts.push(`Temp ${batteryTempC.toFixed(1)}°C`);
+          infoLines.push(`Temperature: ${batteryTempC.toFixed(1)} °C`);
         }
         if (ts) {
-          parts.push(`Updated ${ts.toLocaleString()}`);
+          infoLines.push(`Last update: ${ts.toLocaleString()}`);
         }
 
-        const subtitle = parts.join(", ");
-
         const infoHtml = `
-          <div>
-            <strong>${baseLabel}</strong><br/>
-            Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br/>
-            ${subtitle ? subtitle + "<br/>" : ""}
+          <div style="font-size:13px; line-height:1.4;">
+            <strong>${label}</strong><br/>
+            ${infoLines.join("<br/>")}
           </div>
         `;
 
@@ -396,23 +391,32 @@ function initDeviceMapInternal() {
           marker = new google.maps.Marker({
             position,
             map: mapInstance,
-            title: baseLabel,
+            title: label,
           });
           markerMap.set(id, marker);
+
+          marker.addListener("click", () => {
+            if (!infoWindow) return;
+            infoWindow.setContent(infoHtml);
+            infoWindow.open({
+              map: mapInstance,
+              anchor: marker,
+            });
+          });
         } else {
           marker.setPosition(position);
-          marker.setTitle(baseLabel);
-        }
+          marker.setTitle(label);
 
-        // Update click listener to show info window with battery and temperature
-        marker.addListener("click", () => {
-          if (!infoWindow) return;
-          infoWindow.setContent(infoHtml);
-          infoWindow.open({
-            map: mapInstance,
-            anchor: marker,
+          // update click content when data changes
+          marker.addListener("click", () => {
+            if (!infoWindow) return;
+            infoWindow.setContent(infoHtml);
+            infoWindow.open({
+              map: mapInstance,
+              anchor: marker,
+            });
           });
-        });
+        }
       });
     },
     (err) => {
