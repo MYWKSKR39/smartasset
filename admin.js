@@ -276,6 +276,7 @@ if (createEmpBtn) {
  * -------------------------------------------------- */
 
 let mapInstance = null;
+let infoWindow = null;
 const markerMap = new Map(); // docId -> google.maps.Marker
 let locationsUnsub = null;
 
@@ -303,7 +304,7 @@ function setupMapUi() {
   });
 }
 
-// optional - no longer used as a callback but harmless to keep
+// optional global callback
 function initDeviceMap() {
   initDeviceMapInternal();
 }
@@ -320,6 +321,7 @@ function initDeviceMapInternal() {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore default
       zoom: 12,
     });
+    infoWindow = new google.maps.InfoWindow();
   }
 
   if (locationsUnsub) return; // already listening
@@ -363,7 +365,7 @@ function initDeviceMapInternal() {
         const batteryTempC = data.batteryTempC;
         const ts = data.timestamp?.toDate?.();
 
-        let title =
+        const baseLabel =
           data.label ||
           data.deviceName ||
           `Device ${id}`;
@@ -380,21 +382,37 @@ function initDeviceMapInternal() {
           parts.push(`Updated ${ts.toLocaleString()}`);
         }
 
-        if (parts.length > 0) {
-          title += " (" + parts.join(", ") + ")";
-        }
+        const subtitle = parts.join(", ");
+
+        const infoHtml = `
+          <div>
+            <strong>${baseLabel}</strong><br/>
+            Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br/>
+            ${subtitle ? subtitle + "<br/>" : ""}
+          </div>
+        `;
 
         if (!marker) {
           marker = new google.maps.Marker({
             position,
             map: mapInstance,
-            title,
+            title: baseLabel,
           });
           markerMap.set(id, marker);
         } else {
           marker.setPosition(position);
-          marker.setTitle(title);
+          marker.setTitle(baseLabel);
         }
+
+        // Update click listener to show info window with battery and temperature
+        marker.addListener("click", () => {
+          if (!infoWindow) return;
+          infoWindow.setContent(infoHtml);
+          infoWindow.open({
+            map: mapInstance,
+            anchor: marker,
+          });
+        });
       });
     },
     (err) => {
