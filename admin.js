@@ -64,11 +64,8 @@ onAuthStateChanged(auth, (user) => {
     userEmailSpan.textContent = user.email;
   }
 
-  // start normal listeners
   startAssetsListener();
   startRequestsListener();
-
-  // start map support
   setupMapUi();
 });
 
@@ -271,12 +268,12 @@ if (createEmpBtn) {
 }
 
 /* ----------------------------------------------------
- * Live device map (reads Firestore in realtime)
+ * Live device map
  * -------------------------------------------------- */
 
 let mapInstance = null;
 let infoWindow = null;
-const markerMap = new Map(); // docId -> google.maps.Marker
+const markerMap = new Map();
 let locationsUnsub = null;
 
 function setupMapUi() {
@@ -300,7 +297,6 @@ function setupMapUi() {
   });
 }
 
-// optional global callback
 function initDeviceMap() {
   initDeviceMapInternal();
 }
@@ -328,11 +324,9 @@ function initDeviceMapInternal() {
     colRef,
     (snapshot) => {
       if (mapStatus) {
-        if (snapshot.empty) {
-          mapStatus.textContent = "No devices reporting location yet.";
-        } else {
-          mapStatus.textContent = `Devices reporting location: ${snapshot.size}`;
-        }
+        mapStatus.textContent = snapshot.empty
+          ? "No devices reporting location yet."
+          : `Devices reporting location: ${snapshot.size}`;
       }
 
       snapshot.docChanges().forEach((change) => {
@@ -359,6 +353,7 @@ function initDeviceMapInternal() {
 
         const batteryPct = data.batteryPct;
         const batteryTempC = data.batteryTempC;
+        const batteryStatus = data.batteryStatus;
         const ts = data.timestamp?.toDate?.();
 
         const label =
@@ -371,11 +366,16 @@ function initDeviceMapInternal() {
         infoLines.push(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
 
         if (typeof batteryPct === "number") {
-          infoLines.push(`Battery: ${batteryPct}%`);
+          const statusText = typeof batteryStatus === "string"
+            ? ` (${batteryStatus})`
+            : "";
+          infoLines.push(`Battery: ${batteryPct} percent${statusText}`);
         }
+
         if (typeof batteryTempC === "number") {
           infoLines.push(`Temperature: ${batteryTempC.toFixed(1)} °C`);
         }
+
         if (ts) {
           infoLines.push(`Last update: ${ts.toLocaleString()}`);
         }
@@ -394,29 +394,19 @@ function initDeviceMapInternal() {
             title: label,
           });
           markerMap.set(id, marker);
-
-          marker.addListener("click", () => {
-            if (!infoWindow) return;
-            infoWindow.setContent(infoHtml);
-            infoWindow.open({
-              map: mapInstance,
-              anchor: marker,
-            });
-          });
         } else {
           marker.setPosition(position);
           marker.setTitle(label);
-
-          // update click content when data changes
-          marker.addListener("click", () => {
-            if (!infoWindow) return;
-            infoWindow.setContent(infoHtml);
-            infoWindow.open({
-              map: mapInstance,
-              anchor: marker,
-            });
-          });
         }
+
+        marker.addListener("click", () => {
+          if (!infoWindow) return;
+          infoWindow.setContent(infoHtml);
+          infoWindow.open({
+            map: mapInstance,
+            anchor: marker,
+          });
+        });
       });
     },
     (err) => {
