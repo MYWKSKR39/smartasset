@@ -42,6 +42,10 @@ const toggleMapBtn = document.getElementById("toggleMapBtn");
 const mapSection = document.getElementById("mapSection");
 const mapStatus = document.getElementById("mapStatus");
 
+// latest tracking info keyed by deviceId or assetId
+// value has shape { data, timestampDate }
+const latestDeviceInfo = new Map();
+
 // helper to show text under Create employee login
 function setEmpMessage(text, color) {
   if (!createEmpMessage) return;
@@ -115,7 +119,10 @@ function startAssetsListener() {
       const category = data.category || "";
       const owner = data.owner || "";
       const location = data.location || "";
-      const status = data.status || "";
+      const baseStatus = data.status || "";
+
+      // compute tracking based status from latestDeviceInfo
+      const statusCellText = computeTrackingStatusForAsset(assetId, baseStatus);
 
       tr.innerHTML = `
         <td>${assetId}</td>
@@ -123,12 +130,15 @@ function startAssetsListener() {
         <td>${category}</td>
         <td>${owner}</td>
         <td>${location}</td>
-        <td>${status}</td>
+        <td>${statusCellText}</td>
         <td>
           <button class="edit-btn">Edit</button>
           <button class="delete-btn">Remove</button>
         </td>
       `;
+
+      // store assetId on the row so we can refresh it later
+      tr.dataset.assetId = assetId;
 
       const editBtn = tr.querySelector(".edit-btn");
       const deleteBtn = tr.querySelector(".delete-btn");
@@ -151,6 +161,56 @@ function startAssetsListener() {
 
       assetTableBody.appendChild(tr);
     });
+
+    // after rebuilding rows, make sure tracking info is applied
+    refreshAssetStatusesFromTracking();
+  });
+}
+
+/**
+ * Returns either:
+ * - "Live" if last update less than 2 minutes old
+ * - "Last seen X minutes ago"
+ * - or the original status if there is no tracking info
+ */
+function computeTrackingStatusForAsset(assetId, fallbackStatus) {
+  const info = latestDeviceInfo.get(assetId);
+  if (!info || !info.timestampDate) {
+    return fallbackStatus || "";
+  }
+
+  const now = Date.now();
+  const ageMs = now - info.timestampDate.getTime();
+
+  if (ageMs < 2 * 60 * 1000) {
+    return "Live";
+  }
+
+  const minutes = Math.max(1, Math.floor(ageMs / 60000));
+  const minutesText =
+    minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+
+  return `Last seen ${minutesText}`;
+}
+
+/**
+ * Walks the asset table and updates the Status column using latestDeviceInfo.
+ * This lets the status react in real time when tracking updates arrive.
+ */
+function refreshAssetStatusesFromTracking() {
+  if (!assetTableBody) return;
+
+  const rows = assetTableBody.querySelectorAll("tr");
+  rows.forEach((row) => {
+    const assetId = row.dataset.assetId;
+    if (!assetId) return;
+
+    const statusCell = row.children[5]; // 0 based: AssetId, Name, Category, Owner, Location, Status
+    if (!statusCell) return;
+
+    const current = statusCell.textContent || "";
+    const updated = computeTrackingStatusForAsset(assetId, current);
+    statusCell.textContent = updated;
   });
 }
 
@@ -268,7 +328,7 @@ if (createEmpBtn) {
 }
 
 /* ----------------------------------------------------
- * Live device map
+ * Live device map and tracking listener
  * -------------------------------------------------- */
 
 let mapInstance = null;
@@ -341,6 +401,7 @@ function initDeviceMapInternal() {
             marker.setMap(null);
             markerMap.delete(id);
           }
+          latestDeviceInfo.delete(id);
           return;
         }
 
@@ -407,7 +468,17 @@ function initDeviceMapInternal() {
             anchor: marker,
           });
         });
+
+        // store latest tracking info keyed by device id
+        const key = data.deviceId || id;
+        latestDeviceInfo.set(key, {
+          data,
+          timestampDate: ts || null,
+        });
       });
+
+      // whenever tracking updates, refresh the asset table statuses
+      refreshAssetStatusesFromTracking();
     },
     (err) => {
       console.error("Error listening to deviceLocations", err);
