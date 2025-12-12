@@ -21,6 +21,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const ADMIN_EMAIL = "admin@smartasset.com";
+const LIVE_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -46,12 +47,8 @@ const toggleMapBtn = document.getElementById("toggleMapBtn");
 const mapSection = document.getElementById("mapSection");
 const mapStatus = document.getElementById("mapStatus");
 
-// live device cache
-// key is either assetId (preferred) or docId, value is the Firestore data
-const deviceLocationsByAssetId = new Map();
-const deviceLocationsByDocId = new Map();
-
-const LIVE_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+// cache of latest device locations keyed by assetId or deviceId
+const deviceCache = new Map(); // key: assetId, value: device doc data
 
 // helper to show text under Create employee login
 function setEmpMessage(text, color) {
@@ -75,14 +72,14 @@ onAuthStateChanged(auth, (user) => {
     userEmailSpan.textContent = user.email;
   }
 
-  // start normal listeners
+  // start listeners
   startAssetsListener();
   startRequestsListener();
 
-  // always listen to deviceLocations for live tracking status
+  // device listener runs even if map is hidden
   startDeviceLocationsListener();
 
-  // map UI (map script will only be used when user clicks show map)
+  // start map support
   setupMapUi();
 });
 
@@ -127,7 +124,7 @@ function startAssetsListener() {
     if (snapshot.empty) {
       const tr = document.createElement("tr");
       const td = document.createElement("td");
-      td.colSpan = 7;
+      td.colSpan = 8; // IMPORTANT: now 8 columns (added Tracking)
       td.textContent = "No assets found.";
       tr.appendChild(td);
       assetTableBody.appendChild(tr);
@@ -138,7 +135,7 @@ function startAssetsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
-      const assetId = data.assetId || docSnap.id;
+      const assetId = (data.assetId || docSnap.id || "").trim();
       const name = data.name || "";
       const category = data.category || "";
       const owner = data.owner || "";
@@ -151,7 +148,8 @@ function startAssetsListener() {
         <td>${category}</td>
         <td>${owner}</td>
         <td>${location}</td>
-        <td class="asset-status-cell" data-base-status="${escapeHtml(status)}">${status}</td>
+        <td class="asset-status-cell">${status}</td>
+        <td class="tracking-cell" data-asset-id="${escapeHtml(assetId)}">Checking...</td>
         <td>
           <button class="edit-btn">Edit</button>
           <button class="delete-btn">Remove</button>
@@ -180,8 +178,8 @@ function startAssetsListener() {
       assetTableBody.appendChild(tr);
     });
 
-    // after rendering assets, apply live tracking indicators (if any devices are already cached)
-    applyLiveTrackingToAssetTable();
+    // update tracking column after rendering assets
+    updateTrackingColumn();
   });
 }
 
@@ -294,50 +292,33 @@ if (createEmpBtn) {
 }
 
 /* ----------------------------------------------------
- * Device locations listener (always on for admin)
+ * Device locations listener (for table + map)
  * -------------------------------------------------- */
 
-let deviceLocationsUnsub = null;
-
 function startDeviceLocationsListener() {
-  if (deviceLocationsUnsub) return;
-
   const colRef = collection(db, "deviceLocations");
 
-  deviceLocationsUnsub = onSnapshot(
+  onSnapshot(
     colRef,
     (snapshot) => {
-      deviceLocationsByAssetId.clear();
-      deviceLocationsByDocId.clear();
+      deviceCache.clear();
 
       snapshot.forEach((docSnap) => {
-        const id = docSnap.id;
-        const data = docSnap.data() || {};
+        const data = docSnap.data();
 
-        // Prefer linking by assetId if your Android sends it as deviceId or assetId
-        // Many setups use "deviceId" as the asset id, keep both options
-        const assetId = (data.assetId || data.deviceId || "").toString().trim();
-
-        if (assetId) {
-          deviceLocationsByAssetId.set(assetId, data);
+        // Your Android can send either assetId or deviceId, we support both
+        const key = ((data.assetId || data.deviceId || "") + "").trim();
+        if (key) {
+          deviceCache.set(key, data);
         }
-        deviceLocationsByDocId.set(id, data);
       });
 
-      // Update asset table status badges even if map is hidden
-      applyLiveTrackingToAssetTable();
+      // update the asset table tracking column
+      updateTrackingColumn();
 
-      // If map is currently shown, also update markers
-      if (mapInstance) {
-        applyMarkersFromCache();
-      }
-
-      if (mapStatus) {
-        if (snapshot.empty) {
-          mapStatus.textContent = "No devices reporting location yet.";
-        } else {
-          mapStatus.textContent = `Devices reporting location: ${snapshot.size}`;
-        }
+      // if map is open, update markers too
+      if (locationsUnsub) {
+        // map listener will handle markers, no need duplicate here
       }
     },
     (err) => {
@@ -349,67 +330,44 @@ function startDeviceLocationsListener() {
   );
 }
 
-function getTimestampMs(ts) {
-  if (!ts) return null;
-  if (ts.toDate) return ts.toDate().getTime();
-  const d = new Date(ts);
-  const ms = d.getTime();
-  return Number.isFinite(ms) ? ms : null;
-}
-
-function isLiveDevice(data) {
-  const ms = getTimestampMs(data.timestamp);
-  if (!ms) return false;
-  return Date.now() - ms <= LIVE_WINDOW_MS;
-}
-
-function getDeviceLabel(data, fallback) {
-  return (data.label || data.deviceName || fallback || "Unknown device").toString();
-}
-
-function applyLiveTrackingToAssetTable() {
+function updateTrackingColumn() {
   if (!assetTableBody) return;
 
-  const rows = assetTableBody.querySelectorAll("tr");
-  rows.forEach((row) => {
-    const idCell = row.cells && row.cells[0];
-    const statusCell = row.querySelector(".asset-status-cell");
-    if (!idCell || !statusCell) return;
+  const cells = assetTableBody.querySelectorAll(".tracking-cell");
+  const now = Date.now();
 
-    const assetId = (idCell.textContent || "").trim();
+  cells.forEach((cell) => {
+    const assetId = (cell.getAttribute("data-asset-id") || "").trim();
     if (!assetId) return;
 
-    const baseStatus = statusCell.getAttribute("data-base-status") || statusCell.textContent || "";
+    const device = deviceCache.get(assetId);
 
-    // Link priority:
-    // 1) match assetId to data.assetId or data.deviceId (deviceLocationsByAssetId)
-    // 2) if you later choose to store doc id same as assetId, this still works
-    const deviceData =
-      deviceLocationsByAssetId.get(assetId) ||
-      deviceLocationsByDocId.get(assetId) ||
-      null;
-
-    if (!deviceData) {
-      statusCell.textContent = baseStatus;
+    if (!device || !device.timestamp) {
+      cell.textContent = "Not tracked";
+      cell.style.color = "";
       return;
     }
 
-    if (!isLiveDevice(deviceData)) {
-      statusCell.textContent = baseStatus;
-      return;
-    }
+    const ts = device.timestamp.toDate ? device.timestamp.toDate() : new Date(device.timestamp);
+    const ageMs = now - ts.getTime();
 
-    const label = getDeviceLabel(deviceData, assetId);
-    statusCell.textContent = `${baseStatus} [Tracked live by ${label}]`;
+    if (ageMs <= LIVE_WINDOW_MS) {
+      cell.textContent = "Tracking (Live)";
+      cell.style.color = "green";
+    } else {
+      cell.textContent = `Last seen: ${ts.toLocaleString()}`;
+      cell.style.color = "#555";
+    }
   });
 }
 
 /* ----------------------------------------------------
- * Live device map UI
+ * Live device map (reads Firestore in realtime)
  * -------------------------------------------------- */
 
 let mapInstance = null;
-const markerMap = new Map(); // key -> google.maps.Marker
+const markerMap = new Map(); // docId -> google.maps.Marker
+let locationsUnsub = null;
 
 function setupMapUi() {
   if (!toggleMapBtn || !mapSection) return;
@@ -433,6 +391,8 @@ function setupMapUi() {
 }
 
 function initDeviceMapInternal() {
+  if (!mapSection) return;
+
   const mapDiv = document.getElementById("deviceMap");
   if (!mapDiv) return;
 
@@ -443,82 +403,119 @@ function initDeviceMapInternal() {
     });
   }
 
-  // markers are driven from the cached deviceLocations listener
-  applyMarkersFromCache();
-}
+  if (locationsUnsub) return; // already listening
 
-function applyMarkersFromCache() {
-  if (!mapInstance || !window.google || !google.maps) return;
+  const colRef = collection(db, "deviceLocations");
 
-  // Use docId cache so every device shows, even if assetId is empty
-  deviceLocationsByDocId.forEach((data, id) => {
-    const lat = data.lat;
-    const lng = data.lng;
+  locationsUnsub = onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (mapStatus) {
+        if (snapshot.empty) {
+          mapStatus.textContent = "No devices reporting location yet.";
+        } else {
+          mapStatus.textContent = `Devices reporting location: ${snapshot.size}`;
+        }
+      }
 
-    if (typeof lat !== "number" || typeof lng !== "number") return;
+      snapshot.docChanges().forEach((change) => {
+        const id = change.doc.id;
+        const data = change.doc.data();
+        const lat = data.lat;
+        const lng = data.lng;
 
-    const position = { lat, lng };
+        if (change.type === "removed") {
+          const marker = markerMap.get(id);
+          if (marker) {
+            marker.setMap(null);
+            markerMap.delete(id);
+          }
+          return;
+        }
 
-    const batteryPct =
-      typeof data.batteryPct === "number" ? `${data.batteryPct} percent` : "Unknown";
-    const batteryStatus = data.batteryStatus || "";
-    const batteryLine =
-      batteryStatus !== "" ? `Battery: ${batteryPct} (${batteryStatus})` : `Battery: ${batteryPct}`;
+        if (typeof lat !== "number" || typeof lng !== "number") {
+          return;
+        }
 
-    const tempLine =
-      typeof data.batteryTempC === "number" ? `Temperature: ${data.batteryTempC.toFixed(1)} °C` : "";
+        const position = { lat, lng };
 
-    const tsMs = getTimestampMs(data.timestamp);
-    const tsLine = tsMs ? `Last update: ${new Date(tsMs).toLocaleString()}` : "Last update: Unknown";
+        const batteryPct =
+          typeof data.batteryPct === "number" ? `${data.batteryPct} percent` : "Unknown";
+        const batteryStatus = data.batteryStatus || "";
+        const batteryLine =
+          batteryStatus !== "" ? `Battery: ${batteryPct} (${batteryStatus})` : `Battery: ${batteryPct}`;
 
-    const title = getDeviceLabel(data, `Device ${id}`);
+        const tempLine =
+          typeof data.batteryTempC === "number" ? `Temperature: ${data.batteryTempC.toFixed(1)} °C` : "";
 
-    const infoHtml =
-      `${escapeHtml(title)}<br>` +
-      `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>` +
-      `${escapeHtml(batteryLine)}<br>` +
-      (tempLine ? `${escapeHtml(tempLine)}<br>` : "") +
-      escapeHtml(tsLine);
+        const ts = data.timestamp
+          ? data.timestamp.toDate
+            ? data.timestamp.toDate()
+            : new Date(data.timestamp)
+          : null;
 
-    let marker = markerMap.get(id);
+        const tsLine = ts ? `Last update: ${ts.toLocaleString()}` : "Last update: Unknown";
 
-    if (!marker) {
-      marker = new google.maps.Marker({
-        position,
-        map: mapInstance,
-        title,
+        const title = data.label || data.deviceName || data.assetId || data.deviceId || `Device ${id}`;
+
+        const infoHtml =
+          `${escapeHtml(title)}<br>` +
+          `Lat: ${Number(lat).toFixed(6)}, Lng: ${Number(lng).toFixed(6)}<br>` +
+          `${escapeHtml(batteryLine)}<br>` +
+          (tempLine ? `${escapeHtml(tempLine)}<br>` : "") +
+          escapeHtml(tsLine);
+
+        let marker = markerMap.get(id);
+
+        if (!marker) {
+          marker = new google.maps.Marker({
+            position,
+            map: mapInstance,
+            title,
+          });
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: infoHtml,
+          });
+
+          marker.addListener("click", () => {
+            infoWindow.open({
+              anchor: marker,
+              map: mapInstance,
+              shouldFocus: false,
+            });
+          });
+
+          marker.infoWindow = infoWindow;
+          markerMap.set(id, marker);
+        } else {
+          marker.setPosition(position);
+          marker.setTitle(title);
+          if (marker.infoWindow) {
+            marker.infoWindow.setContent(infoHtml);
+          }
+        }
       });
 
-      const infoWindow = new google.maps.InfoWindow({
-        content: infoHtml,
-      });
-
-      marker.addListener("click", () => {
-        infoWindow.open({
-          anchor: marker,
-          map: mapInstance,
-          shouldFocus: false,
-        });
-      });
-
-      marker.infoWindow = infoWindow;
-      markerMap.set(id, marker);
-    } else {
-      marker.setPosition(position);
-      marker.setTitle(title);
-      if (marker.infoWindow) {
-        marker.infoWindow.setContent(infoHtml);
+      // also update tracking column because deviceLocations changed
+      updateTrackingColumn();
+    },
+    (err) => {
+      console.error("Error listening to deviceLocations", err);
+      if (mapStatus) {
+        mapStatus.textContent = "Error loading locations: " + (err.code || err.message);
       }
     }
-  });
+  );
 }
 
 /* ----------------------------------------------------
  * Small helpers
  * -------------------------------------------------- */
 
-function escapeHtml(s) {
-  return String(s || "")
+function escapeHtml(value) {
+  const str = String(value ?? "");
+  return str
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
