@@ -21,7 +21,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const ADMIN_EMAIL = "admin@smartasset.com";
-const LIVE_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -47,9 +46,6 @@ const toggleMapBtn = document.getElementById("toggleMapBtn");
 const mapSection = document.getElementById("mapSection");
 const mapStatus = document.getElementById("mapStatus");
 
-// cache of latest device locations keyed by assetId or deviceId
-const deviceCache = new Map(); // key: assetId, value: device doc data
-
 // helper to show text under Create employee login
 function setEmpMessage(text, color) {
   if (!createEmpMessage) return;
@@ -57,7 +53,101 @@ function setEmpMessage(text, color) {
   createEmpMessage.style.color = color;
 }
 
-// auth guard, only admin can stay here
+/* ----------------------------------------------------
+ * LIVE CACHE for deviceLocations (so assets table can show tracking)
+ * -------------------------------------------------- */
+
+let deviceLocationsUnsub = null;
+// Map<deviceId, deviceData>
+const deviceLocationsCache = new Map();
+
+function startDeviceLocationsListener() {
+  if (deviceLocationsUnsub) return;
+
+  const colRef = collection(db, "deviceLocations");
+
+  deviceLocationsUnsub = onSnapshot(
+    colRef,
+    (snapshot) => {
+      deviceLocationsCache.clear();
+      snapshot.forEach((docSnap) => {
+        deviceLocationsCache.set(docSnap.id, docSnap.data());
+      });
+
+      // update tracking column in assets table whenever locations change
+      applyTrackingToAssetTable();
+    },
+    (err) => {
+      console.error("Error listening to deviceLocations", err);
+    }
+  );
+}
+
+function formatTimestamp(ts) {
+  if (!ts) return null;
+
+  // Firestore Timestamp
+  if (ts.toDate && typeof ts.toDate === "function") {
+    return ts.toDate();
+  }
+
+  // number millis or string date
+  try {
+    const d = new Date(ts);
+    if (!isNaN(d.getTime())) return d;
+  } catch (e) {}
+
+  return null;
+}
+
+function applyTrackingToAssetTable() {
+  if (!assetTableBody) return;
+
+  const now = Date.now();
+  const rows = assetTableBody.querySelectorAll("tr");
+
+  rows.forEach((row) => {
+    const idCell = row.cells && row.cells[0];
+    if (!idCell) return;
+
+    const assetId = (idCell.textContent || "").trim();
+    if (!assetId) return;
+
+    const trackingCell = row.querySelector(".asset-tracking-cell");
+    if (!trackingCell) return;
+
+    const deviceData = deviceLocationsCache.get(assetId);
+
+    if (!deviceData) {
+      trackingCell.textContent = "Not tracked";
+      trackingCell.title = "";
+      return;
+    }
+
+    const ts = formatTimestamp(deviceData.timestamp);
+    if (!ts) {
+      trackingCell.textContent = "Tracked, no timestamp";
+      trackingCell.title = "";
+      return;
+    }
+
+    const ageMs = now - ts.getTime();
+    const ageMinutes = ageMs / 60000;
+
+    if (ageMinutes <= 2) {
+      trackingCell.textContent = "Live";
+      trackingCell.title = `Last seen: ${ts.toLocaleString()}`;
+    } else {
+      trackingCell.textContent = `Last seen: ${ts.toLocaleString()}`;
+      trackingCell.title = `Last seen: ${ts.toLocaleString()}`;
+    }
+  });
+}
+
+/* ----------------------------------------------------
+ * AUTH
+ * -------------------------------------------------- */
+
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
@@ -72,14 +162,14 @@ onAuthStateChanged(auth, (user) => {
     userEmailSpan.textContent = user.email;
   }
 
-  // start listeners
+  // IMPORTANT: start locations listener even if map is hidden
+  startDeviceLocationsListener();
+
+  // start normal listeners
   startAssetsListener();
   startRequestsListener();
 
-  // device listener runs even if map is hidden
-  startDeviceLocationsListener();
-
-  // start map support
+  // map support
   setupMapUi();
 });
 
@@ -90,7 +180,7 @@ if (logoutBtn) {
   });
 }
 
-// add asset button, simple redirect to add.html
+// add asset button
 if (addAssetBtn) {
   addAssetBtn.addEventListener("click", () => {
     window.location.href = "add.html";
@@ -124,7 +214,7 @@ function startAssetsListener() {
     if (snapshot.empty) {
       const tr = document.createElement("tr");
       const td = document.createElement("td");
-      td.colSpan = 8; // IMPORTANT: now 8 columns (added Tracking)
+      td.colSpan = 8; // Asset table now has 8 columns including Tracking
       td.textContent = "No assets found.";
       tr.appendChild(td);
       assetTableBody.appendChild(tr);
@@ -135,7 +225,7 @@ function startAssetsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
-      const assetId = (data.assetId || docSnap.id || "").trim();
+      const assetId = data.assetId || docSnap.id;
       const name = data.name || "";
       const category = data.category || "";
       const owner = data.owner || "";
@@ -149,10 +239,10 @@ function startAssetsListener() {
         <td>${owner}</td>
         <td>${location}</td>
         <td class="asset-status-cell">${status}</td>
-        <td class="tracking-cell" data-asset-id="${escapeHtml(assetId)}">Checking...</td>
+        <td class="asset-tracking-cell">Not tracked</td>
         <td>
-          <button class="edit-btn">Edit</button>
-          <button class="delete-btn">Remove</button>
+          <button class="edit-btn table-action-btn">Edit</button>
+          <button class="delete-btn table-action-btn">Remove</button>
         </td>
       `;
 
@@ -178,8 +268,8 @@ function startAssetsListener() {
       assetTableBody.appendChild(tr);
     });
 
-    // update tracking column after rendering assets
-    updateTrackingColumn();
+    // after rendering assets, apply tracking based on cached locations
+    applyTrackingToAssetTable();
   });
 }
 
@@ -218,8 +308,8 @@ function startRequestsListener() {
         <td>${data.reason || ""}</td>
         <td>${data.status || ""}</td>
         <td>
-          <button class="approve-btn">Approve</button>
-          <button class="reject-btn">Reject</button>
+          <button class="approve-btn table-action-btn">Approve</button>
+          <button class="reject-btn table-action-btn">Reject</button>
         </td>
       `;
 
@@ -276,7 +366,6 @@ if (createEmpBtn) {
     const email = `${idRaw}@smartasset.com`;
 
     try {
-      // use a secondary app so admin does not get logged out
       const secondaryApp = initializeApp(firebaseConfig, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
       await createUserWithEmailAndPassword(secondaryAuth, email, password);
@@ -286,77 +375,10 @@ if (createEmpBtn) {
       newEmpPasswordInput.value = "";
     } catch (err) {
       console.error(err);
-      setEmpMessage("Error creating employee: " + (err.code || err.message), "red");
-    }
-  });
-}
-
-/* ----------------------------------------------------
- * Device locations listener (for table + map)
- * -------------------------------------------------- */
-
-function startDeviceLocationsListener() {
-  const colRef = collection(db, "deviceLocations");
-
-  onSnapshot(
-    colRef,
-    (snapshot) => {
-      deviceCache.clear();
-
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-
-        // Your Android can send either assetId or deviceId, we support both
-        const key = ((data.assetId || data.deviceId || "") + "").trim();
-        if (key) {
-          deviceCache.set(key, data);
-        }
-      });
-
-      // update the asset table tracking column
-      updateTrackingColumn();
-
-      // if map is open, update markers too
-      if (locationsUnsub) {
-        // map listener will handle markers, no need duplicate here
-      }
-    },
-    (err) => {
-      console.error("Error listening to deviceLocations", err);
-      if (mapStatus) {
-        mapStatus.textContent = "Error loading locations: " + (err.code || err.message);
-      }
-    }
-  );
-}
-
-function updateTrackingColumn() {
-  if (!assetTableBody) return;
-
-  const cells = assetTableBody.querySelectorAll(".tracking-cell");
-  const now = Date.now();
-
-  cells.forEach((cell) => {
-    const assetId = (cell.getAttribute("data-asset-id") || "").trim();
-    if (!assetId) return;
-
-    const device = deviceCache.get(assetId);
-
-    if (!device || !device.timestamp) {
-      cell.textContent = "Not tracked";
-      cell.style.color = "";
-      return;
-    }
-
-    const ts = device.timestamp.toDate ? device.timestamp.toDate() : new Date(device.timestamp);
-    const ageMs = now - ts.getTime();
-
-    if (ageMs <= LIVE_WINDOW_MS) {
-      cell.textContent = "Tracking (Live)";
-      cell.style.color = "green";
-    } else {
-      cell.textContent = `Last seen: ${ts.toLocaleString()}`;
-      cell.style.color = "#555";
+      setEmpMessage(
+        "Error creating employee: " + (err.code || err.message),
+        "red"
+      );
     }
   });
 }
@@ -366,8 +388,8 @@ function updateTrackingColumn() {
  * -------------------------------------------------- */
 
 let mapInstance = null;
-const markerMap = new Map(); // docId -> google.maps.Marker
-let locationsUnsub = null;
+const markerMap = new Map();
+let mapLocationsUnsub = null;
 
 function setupMapUi() {
   if (!toggleMapBtn || !mapSection) return;
@@ -391,8 +413,6 @@ function setupMapUi() {
 }
 
 function initDeviceMapInternal() {
-  if (!mapSection) return;
-
   const mapDiv = document.getElementById("deviceMap");
   if (!mapDiv) return;
 
@@ -403,24 +423,23 @@ function initDeviceMapInternal() {
     });
   }
 
-  if (locationsUnsub) return; // already listening
+  if (mapLocationsUnsub) return;
 
   const colRef = collection(db, "deviceLocations");
 
-  locationsUnsub = onSnapshot(
+  mapLocationsUnsub = onSnapshot(
     colRef,
     (snapshot) => {
       if (mapStatus) {
-        if (snapshot.empty) {
-          mapStatus.textContent = "No devices reporting location yet.";
-        } else {
-          mapStatus.textContent = `Devices reporting location: ${snapshot.size}`;
-        }
+        mapStatus.textContent = snapshot.empty
+          ? "No devices reporting location yet."
+          : `Devices reporting location: ${snapshot.size}`;
       }
 
       snapshot.docChanges().forEach((change) => {
         const id = change.doc.id;
         const data = change.doc.data();
+
         const lat = data.lat;
         const lng = data.lng;
 
@@ -433,9 +452,7 @@ function initDeviceMapInternal() {
           return;
         }
 
-        if (typeof lat !== "number" || typeof lng !== "number") {
-          return;
-        }
+        if (typeof lat !== "number" || typeof lng !== "number") return;
 
         const position = { lat, lng };
 
@@ -443,27 +460,26 @@ function initDeviceMapInternal() {
           typeof data.batteryPct === "number" ? `${data.batteryPct} percent` : "Unknown";
         const batteryStatus = data.batteryStatus || "";
         const batteryLine =
-          batteryStatus !== "" ? `Battery: ${batteryPct} (${batteryStatus})` : `Battery: ${batteryPct}`;
+          batteryStatus !== ""
+            ? `Battery: ${batteryPct} (${batteryStatus})`
+            : `Battery: ${batteryPct}`;
 
         const tempLine =
-          typeof data.batteryTempC === "number" ? `Temperature: ${data.batteryTempC.toFixed(1)} °C` : "";
+          typeof data.batteryTempC === "number"
+            ? `Temperature: ${data.batteryTempC.toFixed(1)} °C`
+            : "";
 
-        const ts = data.timestamp
-          ? data.timestamp.toDate
-            ? data.timestamp.toDate()
-            : new Date(data.timestamp)
-          : null;
-
+        const ts = formatTimestamp(data.timestamp);
         const tsLine = ts ? `Last update: ${ts.toLocaleString()}` : "Last update: Unknown";
 
-        const title = data.label || data.deviceName || data.assetId || data.deviceId || `Device ${id}`;
+        const title = data.label || data.deviceName || `Device ${id}`;
 
         const infoHtml =
-          `${escapeHtml(title)}<br>` +
-          `Lat: ${Number(lat).toFixed(6)}, Lng: ${Number(lng).toFixed(6)}<br>` +
-          `${escapeHtml(batteryLine)}<br>` +
-          (tempLine ? `${escapeHtml(tempLine)}<br>` : "") +
-          escapeHtml(tsLine);
+          `${title}<br>` +
+          `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>` +
+          `${batteryLine}<br>` +
+          (tempLine ? `${tempLine}<br>` : "") +
+          tsLine;
 
         let marker = markerMap.get(id);
 
@@ -496,29 +512,12 @@ function initDeviceMapInternal() {
           }
         }
       });
-
-      // also update tracking column because deviceLocations changed
-      updateTrackingColumn();
     },
     (err) => {
-      console.error("Error listening to deviceLocations", err);
+      console.error("Error listening to deviceLocations for map", err);
       if (mapStatus) {
         mapStatus.textContent = "Error loading locations: " + (err.code || err.message);
       }
     }
   );
-}
-
-/* ----------------------------------------------------
- * Small helpers
- * -------------------------------------------------- */
-
-function escapeHtml(value) {
-  const str = String(value ?? "");
-  return str
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
