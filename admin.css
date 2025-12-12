@@ -171,10 +171,16 @@ main {
   width: 100%;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+
+  /* makes scrolling feel nicer, prevents layout jumping when scrollbar appears */
+  scrollbar-gutter: stable;
 }
 
 table {
-  width: 100%;
+  /* key change: let table expand wider than container, but never smaller than container */
+  width: max-content;
+  min-width: 100%;
+
   border-collapse: collapse;
   font-size: 0.85rem;
 }
@@ -189,6 +195,24 @@ td {
   padding: 0.5rem 0.6rem;
   text-align: left;
   white-space: nowrap;
+
+  /* key change: avoids ugly overflow when columns get tight */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* optional: freeze the first column so you always see Asset ID */
+.table-wrapper th:first-child,
+.table-wrapper td:first-child {
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  z-index: 2;
+}
+
+.table-wrapper thead th:first-child {
+  background: var(--table-header-bg);
+  z-index: 3;
 }
 
 tbody tr:nth-child(even) {
