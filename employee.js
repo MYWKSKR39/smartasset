@@ -1,4 +1,3 @@
-// employee.js
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
@@ -26,68 +25,75 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM references
+// --- DOM REFERENCES (Matched to your HTML) ---
 const userEmailSpan = document.getElementById("userEmail");
 const logoutBtn = document.getElementById("logoutBtn");
 
 const assetTableBody = document.getElementById("assetTableBody");
-const myRequestsTableBody = document.getElementById("myRequestsTableBody");
+// Fixed: Removed 's' to match HTML id="myRequestTableBody"
+const myRequestsTableBody = document.getElementById("myRequestTableBody"); 
 
 const requestForm = document.getElementById("borrowForm");
-const assetIdInput = document.getElementById("borrowAssetId");
-const startDateInput = document.getElementById("startDate");
-const endDateInput = document.getElementById("endDate");
-const reasonInput = document.getElementById("reason");
-const requestMessage = document.getElementById("requestMessage");
+// Fixed: Changed to match HTML id="assetIdInput"
+const assetIdInput = document.getElementById("assetIdInput"); 
+const startDateInput = document.getElementById("startDateInput");
+const endDateInput = document.getElementById("endDateInput");
+// Fixed: Changed to match HTML id="reasonInput"
+const reasonInput = document.getElementById("reasonInput"); 
+// Fixed: Changed to match HTML id="borrowMessage"
+const requestMessage = document.getElementById("borrowMessage"); 
 
 let currentUserEmail = null;
 
-// helper for status text under the form
+// Helper to show status messages
 function setRequestMessage(text, color) {
   if (!requestMessage) return;
   requestMessage.textContent = text;
   requestMessage.style.color = color;
 }
 
-// auth guard, redirect admin away from this page
+// --- AUTH LISTENER ---
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
 
-  // Redirect if this is actually the Admin
+  // Redirect admin to the correct dashboard
   if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    window.location.href = "index.html"; 
+    window.location.href = "index.html";
     return;
   }
 
   currentUserEmail = user.email;
 
-  // --- CHANGED LOGIC HERE ---
+  // --- NAME DISPLAY LOGIC (The fix you requested) ---
   if (userEmailSpan) {
-    // 1. If Firebase has a Display Name, use it.
+    let displayNameToShow = user.email; // Default fallback
+
+    // 1. Try to use the official Display Name from Firebase
     if (user.displayName) {
-        userEmailSpan.textContent = user.displayName;
+      displayNameToShow = user.displayName;
     } 
-    // 2. If not, try to extract the name from the "Gmail Plus" email
+    // 2. If no Display Name, parse the "Gmail Plus" tag
     // Example: ernesttan24+ernest.tan@gmail.com -> extracts "ernest.tan"
     else if (user.email.includes("+")) {
-        const parts = user.email.split('@')[0].split('+');
-        // parts[1] is the text after the +, which is your username
-        userEmailSpan.textContent = parts[1] || user.email; 
-    } 
-    // 3. Fallback: just show the full email
-    else {
-        userEmailSpan.textContent = user.email;
+      const parts = user.email.split('@')[0].split('+');
+      // parts[0] is "ernesttan24", parts[1] is "ernest.tan"
+      if (parts[1]) {
+        displayNameToShow = parts[1];
+      }
     }
+
+    userEmailSpan.textContent = displayNameToShow;
   }
 
+  // Start data listeners
   startAssetsListener();
   startMyRequestsListener();
 });
 
-// logout
+// Logout Handler
 if (logoutBtn) {
   logoutBtn.addEventListener("click", async () => {
     await signOut(auth);
@@ -95,7 +101,7 @@ if (logoutBtn) {
   });
 }
 
-// show all assets in top table
+// --- ASSETS TABLE ---
 function startAssetsListener() {
   if (!assetTableBody) return;
 
@@ -106,12 +112,7 @@ function startAssetsListener() {
     assetTableBody.innerHTML = "";
 
     if (snapshot.empty) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 6;
-      td.textContent = "No assets found.";
-      tr.appendChild(td);
-      assetTableBody.appendChild(tr);
+      assetTableBody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
       return;
     }
 
@@ -119,20 +120,13 @@ function startAssetsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
-      const assetId = data.assetId || docSnap.id;
-      const name = data.name || "";
-      const category = data.category || "";
-      const owner = data.owner || "";
-      const location = data.location || "";
-      const status = data.status || "";
-
       tr.innerHTML = `
-        <td>${assetId}</td>
-        <td>${name}</td>
-        <td>${category}</td>
-        <td>${owner}</td>
-        <td>${location}</td>
-        <td>${status}</td>
+        <td>${data.assetId || docSnap.id}</td>
+        <td>${data.name || ""}</td>
+        <td>${data.category || ""}</td>
+        <td>${data.owner || ""}</td>
+        <td>${data.location || ""}</td>
+        <td>${data.status || ""}</td>
       `;
 
       assetTableBody.appendChild(tr);
@@ -140,12 +134,12 @@ function startAssetsListener() {
   });
 }
 
-// show only this user's requests in bottom table
+// --- MY REQUESTS TABLE ---
 function startMyRequestsListener() {
   if (!myRequestsTableBody || !currentUserEmail) return;
 
   const colRef = collection(db, "borrowRequests");
-  // Queries requests where "requestedBy" matches the current logged-in email
+  // Query only requests made by this specific email
   const q = query(
     colRef,
     where("requestedBy", "==", currentUserEmail),
@@ -156,12 +150,7 @@ function startMyRequestsListener() {
     myRequestsTableBody.innerHTML = "";
 
     if (snapshot.empty) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 5;
-      td.textContent = "You have no requests yet.";
-      tr.appendChild(td);
-      myRequestsTableBody.appendChild(tr);
+      myRequestsTableBody.innerHTML = '<tr><td colspan="5">You have no requests yet.</td></tr>';
       return;
     }
 
@@ -182,7 +171,7 @@ function startMyRequestsListener() {
   });
 }
 
-// handle submit of new borrow request
+// --- SUBMIT FORM HANDLER ---
 if (requestForm) {
   requestForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -194,7 +183,7 @@ if (requestForm) {
     const reason = reasonInput.value.trim();
 
     if (!assetId || !start || !end) {
-      setRequestMessage("Please fill in asset ID, start date and end date.", "red");
+      setRequestMessage("Please fill in Asset ID, Start Date, and End Date.", "red");
       return;
     }
 
@@ -204,23 +193,21 @@ if (requestForm) {
         startDate: start,
         endDate: end,
         reason,
-        requestedBy: currentUserEmail,
+        requestedBy: currentUserEmail, // Saves "ernesttan24+ernest.tan@gmail.com"
         status: "Pending",
         createdAt: serverTimestamp()
       });
 
-      setRequestMessage("Request submitted.", "green");
+      setRequestMessage("Request submitted successfully!", "green");
 
+      // Clear form
       assetIdInput.value = "";
       startDateInput.value = "";
       endDateInput.value = "";
       reasonInput.value = "";
     } catch (err) {
       console.error(err);
-      setRequestMessage(
-        "Error submitting request: " + (err.code || err.message),
-        "red"
-      );
+      setRequestMessage("Error submitting request: " + (err.code || err.message), "red");
     }
   });
 }
