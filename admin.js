@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   signOut,
   createUserWithEmailAndPassword,
-  updateProfile // <-- ADDED THIS to save names
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 import {
   getFirestore,
@@ -161,7 +161,6 @@ onAuthStateChanged(auth, (user) => {
   }
   
   // Strict check: Is this the specific admin email?
-  // We use toLowerCase() to avoid issues with capitalization
   if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     console.log("User is not admin, redirecting to employee page...");
     window.location.href = "employee.html";
@@ -285,7 +284,7 @@ function startAssetsListener() {
 }
 
 /* ----------------------------------------------------
- * Borrow requests table
+ * Borrow requests table (UPDATED LOGIC)
  * -------------------------------------------------- */
 
 function startRequestsListener() {
@@ -311,9 +310,23 @@ function startRequestsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
+      // --- CLEAN NAME LOGIC START ---
+      let displayName = data.requestedBy || "Unknown";
+      
+      // If it's a Gmail Plus email, extract the name
+      if (displayName.includes("+")) {
+         const parts = displayName.split('+'); 
+         // parts[1] would be "ernest.tan@gmail.com"
+         if (parts[1]) {
+             // Split again at @ to remove domain
+             displayName = parts[1].split('@')[0];
+         }
+      }
+      // --- CLEAN NAME LOGIC END ---
+
       tr.innerHTML = `
         <td>${data.assetId || ""}</td>
-        <td>${data.requestedBy || ""}</td>
+        <td>${displayName}</td>
         <td>${data.startDate || ""}</td>
         <td>${data.endDate || ""}</td>
         <td>${data.reason || ""}</td>
@@ -362,7 +375,7 @@ function startRequestsListener() {
 if (createEmpBtn) {
   createEmpBtn.addEventListener("click", async () => {
     setEmpMessage("", "");
-    const usernameRaw = newEmpIdInput.value.trim(); // Now can be "ernest.tan" or "12345"
+    const usernameRaw = newEmpIdInput.value.trim(); 
     const password = newEmpPasswordInput.value;
 
     if (!usernameRaw) {
@@ -374,23 +387,22 @@ if (createEmpBtn) {
       return;
     }
 
-    // NEW: Construct the Gmail Plus address
-    // If they typed "admin", it becomes "ernesttan24+admin@gmail.com"
+    // Construct the Gmail Plus address
     const realEmail = `${BASE_GMAIL_USER}+${usernameRaw}${GMAIL_DOMAIN}`;
 
     try {
-      // Create user using a Secondary App instance so we don't log out the Admin
+      // Create user using a Secondary App instance
       const secondaryApp = initializeApp(firebaseConfig, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
       
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, realEmail, password);
       
-      // NEW: Set the Display Name immediately so "Forgot Password" emails look nice
+      // Set the Display Name immediately
       await updateProfile(userCredential.user, {
         displayName: usernameRaw
       });
 
-      // Cleanup the secondary app instance
+      // Cleanup
       await signOut(secondaryAuth);
 
       setEmpMessage(`Created user: ${usernameRaw}`, "green");
