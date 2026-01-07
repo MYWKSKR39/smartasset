@@ -8,21 +8,35 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-const ADMIN_ID = "admin";
-const ADMIN_EMAIL = "admin@smartasset.com";
+// --- DEMO CONFIGURATION ---
+// Your real email prefix. 
+// Any username typed will become: ernesttan24+username@gmail.com
+const BASE_GMAIL_USER = "ernesttan24"; 
+const GMAIL_DOMAIN = "@gmail.com";
+
+// Define which specific alias counts as the "Admin" for redirection purposes
+const ADMIN_EMAIL_ALIAS = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`; 
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 const loginForm = document.getElementById("loginForm");
-const userInput = document.getElementById("userInput");      // admin ID, employee ID, or email
+const userInput = document.getElementById("userInput");       // admin, ernest.tan, or 12345
 const passwordInput = document.getElementById("passwordInput");
 const resetBtn = document.getElementById("resetBtn");
 const loginMessage = document.getElementById("loginMessage");
 
-// helper: turn 5 digit ID into internal email
-function idToEmail(id) {
-  return `${id}@smartasset.com`;
+// --- HELPER: Turn Username into Real Gmail ---
+// Input: "admin"      -> Output: "ernesttan24+admin@gmail.com"
+// Input: "ernest.tan" -> Output: "ernesttan24+ernest.tan@gmail.com"
+function getRealEmail(username) {
+  // 1. If they actually typed a full email, use it as is.
+  if (username.includes("@")) {
+    return username;
+  }
+  
+  // 2. Otherwise, attach your real Gmail with the '+' trick
+  return `${BASE_GMAIL_USER}+${username}${GMAIL_DOMAIN}`;
 }
 
 // show message helper
@@ -32,18 +46,20 @@ function showMessage(text, color) {
   loginMessage.style.color = color;
 }
 
-// already logged in, redirect to correct page
+// --- AUTH STATE LISTENER ---
+// Redirects user to the correct page after login
 onAuthStateChanged(auth, (user) => {
   if (!user) return;
 
-  if (user.email === ADMIN_EMAIL) {
+  // Check if the logged-in email matches your specific Admin alias
+  if (user.email.toLowerCase() === ADMIN_EMAIL_ALIAS.toLowerCase()) {
     window.location.href = "index.html";
   } else {
     window.location.href = "employee.html";
   }
 });
 
-// login handler
+// --- LOGIN HANDLER ---
 if (loginForm) {
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -53,68 +69,51 @@ if (loginForm) {
     const password = passwordInput.value;
 
     if (!rawUser || !password) {
-      showMessage("Please enter your ID or email and password.", "red");
+      showMessage("Please enter your Username and password.", "red");
       return;
     }
 
-    let emailToUse = rawUser;
-
-    if (!rawUser.includes("@")) {
-      // admin login using ID "admin"
-      if (rawUser === ADMIN_ID) {
-        emailToUse = ADMIN_EMAIL;
-      } else {
-        // employee login using 5 digit ID
-        if (!/^\d{5}$/.test(rawUser)) {
-          showMessage("Employee ID must be 5 digits.", "red");
-          return;
-        }
-        emailToUse = idToEmail(rawUser);
-      }
-    }
+    // Convert the username to the real email address
+    const emailToUse = getRealEmail(rawUser);
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, emailToUse, password);
-      const user = cred.user;
-
-      if (user.email === ADMIN_EMAIL) {
-        window.location.href = "index.html";
-      } else {
-        window.location.href = "employee.html";
-      }
+      await signInWithEmailAndPassword(auth, emailToUse, password);
+      // Redirect happens in onAuthStateChanged above
     } catch (err) {
       console.error(err);
-      showMessage("Login error: " + (err.code || err.message), "red");
+      
+      let msg = "Login failed.";
+      if (err.code === "auth/invalid-credential") {
+        msg = "Wrong username or password.";
+      } else if (err.code === "auth/user-not-found") {
+        msg = "User not found. (Did you create this user in Firebase?)";
+      }
+      showMessage(msg, "red");
     }
   });
 }
 
-// reset password button
+// --- RESET PASSWORD HANDLER ---
 if (resetBtn) {
   resetBtn.addEventListener("click", async () => {
     showMessage("", "");
     const rawUser = userInput.value.trim().toLowerCase();
 
     if (!rawUser) {
-      showMessage("Enter your email or admin ID to reset password.", "red");
+      showMessage("Enter your username first to reset password.", "red");
       return;
     }
 
-    let emailForReset = rawUser;
-
-    if (!rawUser.includes("@")) {
-      // allow reset for admin ID only
-      if (rawUser === ADMIN_ID) {
-        emailForReset = ADMIN_EMAIL;
-      } else {
-        showMessage("Ask admin to reset your password for employee IDs.", "red");
-        return;
-      }
-    }
+    // 1. Convert username to real email
+    const emailForReset = getRealEmail(rawUser);
 
     try {
+      // 2. Send the reset email
       await sendPasswordResetEmail(auth, emailForReset);
-      showMessage("Password reset email sent.", "green");
+      
+      // 3. Show success message (telling you where to check)
+      showMessage(`Reset link sent! Check inbox for ${BASE_GMAIL_USER}@gmail.com`, "green");
+      
     } catch (err) {
       console.error(err);
       showMessage("Error sending reset email: " + (err.code || err.message), "red");
