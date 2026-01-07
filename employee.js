@@ -64,9 +64,23 @@ onAuthStateChanged(auth, (user) => {
 
   currentUserEmail = user.email;
 
-  // Display Name Logic: Show "ernest.tan" if available, otherwise show email
+  // --- CHANGED LOGIC HERE ---
   if (userEmailSpan) {
-    userEmailSpan.textContent = user.displayName || user.email;
+    // 1. If Firebase has a Display Name, use it.
+    if (user.displayName) {
+        userEmailSpan.textContent = user.displayName;
+    } 
+    // 2. If not, try to extract the name from the "Gmail Plus" email
+    // Example: ernesttan24+ernest.tan@gmail.com -> extracts "ernest.tan"
+    else if (user.email.includes("+")) {
+        const parts = user.email.split('@')[0].split('+');
+        // parts[1] is the text after the +, which is your username
+        userEmailSpan.textContent = parts[1] || user.email; 
+    } 
+    // 3. Fallback: just show the full email
+    else {
+        userEmailSpan.textContent = user.email;
+    }
   }
 
   startAssetsListener();
@@ -190,7 +204,7 @@ if (requestForm) {
         startDate: start,
         endDate: end,
         reason,
-        requestedBy: currentUserEmail, // This saves the unique email (e.g., ernesttan24+user@gmail.com)
+        requestedBy: currentUserEmail,
         status: "Pending",
         createdAt: serverTimestamp()
       });
