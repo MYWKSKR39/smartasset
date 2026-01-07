@@ -11,6 +11,7 @@ import {
   getFirestore,
   collection,
   addDoc,
+  getDocs, // <-- ADDED THIS to read data once for checking conflicts
   onSnapshot,
   query,
   where,
@@ -67,17 +68,12 @@ onAuthStateChanged(auth, (user) => {
 
   // --- NAME DISPLAY LOGIC ---
   if (userEmailSpan) {
-    let displayNameToShow = user.email; // Default fallback
+    let displayNameToShow = user.email; 
 
-    // 1. Try to use the official Display Name from Firebase
     if (user.displayName) {
       displayNameToShow = user.displayName;
-    } 
-    // 2. If no Display Name, parse the "Gmail Plus" tag
-    // Example: ernesttan24+ernest.tan@gmail.com -> extracts "ernest.tan"
-    else if (user.email.includes("+")) {
+    } else if (user.email.includes("+")) {
       const parts = user.email.split('@')[0].split('+');
-      // parts[0] is "ernesttan24", parts[1] is "ernest.tan"
       if (parts[1]) {
         displayNameToShow = parts[1];
       }
@@ -169,7 +165,7 @@ function startMyRequestsListener() {
   });
 }
 
-// --- SUBMIT FORM HANDLER (WITH DATE VALIDATION) ---
+// --- SUBMIT FORM HANDLER (WITH CONFLICT CHECK) ---
 if (requestForm) {
   requestForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -185,17 +181,49 @@ if (requestForm) {
       return;
     }
 
-    // --- DATE VALIDATION START ---
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
+    // 1. Basic Date Validation
+    const newStartObj = new Date(start);
+    const newEndObj = new Date(end);
 
-    if (startDateObj > endDateObj) {
+    if (newStartObj > newEndObj) {
         setRequestMessage("Error: End date cannot be earlier than start date.", "red");
         return; 
     }
-    // --- DATE VALIDATION END ---
+
+    setRequestMessage("Checking availability...", "blue");
 
     try {
+      // 2. CONFLICT CHECK: Query existing requests for this asset
+      const qConflict = query(
+          collection(db, "borrowRequests"), 
+          where("assetId", "==", assetId)
+      );
+      
+      const querySnapshot = await getDocs(qConflict);
+      let conflictFound = false;
+
+      querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          
+          // Ignore rejected or returned requests (they don't block the asset)
+          if (data.status === "Rejected" || data.status === "Returned") return;
+
+          const existingStart = new Date(data.startDate);
+          const existingEnd = new Date(data.endDate);
+
+          // Check for Date Overlap
+          // (StartA <= EndB) AND (EndA >= StartB) means they overlap
+          if (newStartObj <= existingEnd && newEndObj >= existingStart) {
+              conflictFound = true;
+          }
+      });
+
+      if (conflictFound) {
+          setRequestMessage("Unavailable: Asset is already booked for these dates.", "red");
+          return; // Stop execution here
+      }
+
+      // 3. If no conflict, proceed to submit
       await addDoc(collection(db, "borrowRequests"), {
         assetId,
         startDate: start,
@@ -213,9 +241,10 @@ if (requestForm) {
       startDateInput.value = "";
       endDateInput.value = "";
       reasonInput.value = "";
+      
     } catch (err) {
       console.error(err);
-      setRequestMessage("Error submitting request: " + (err.code || err.message), "red");
+      setRequestMessage("Error processing request: " + (err.code || err.message), "red");
     }
   });
 }
