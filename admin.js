@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   signOut,
   createUserWithEmailAndPassword,
+  updateProfile // <-- ADDED THIS to save names
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 import {
   getFirestore,
@@ -20,7 +21,12 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-const ADMIN_EMAIL = "admin@smartasset.com";
+// --- DEMO CONFIGURATION ---
+const BASE_GMAIL_USER = "ernesttan24";
+const GMAIL_DOMAIN = "@gmail.com";
+
+// This must match the email you manually created in Firebase Console
+const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`; 
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -145,7 +151,7 @@ function applyTrackingToAssetTable() {
 }
 
 /* ----------------------------------------------------
- * AUTH
+ * AUTH PROTECT (Redirect if not Admin)
  * -------------------------------------------------- */
 
 onAuthStateChanged(auth, (user) => {
@@ -153,13 +159,18 @@ onAuthStateChanged(auth, (user) => {
     window.location.href = "login.html";
     return;
   }
-  if (user.email !== ADMIN_EMAIL) {
+  
+  // Strict check: Is this the specific admin email?
+  // We use toLowerCase() to avoid issues with capitalization
+  if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    console.log("User is not admin, redirecting to employee page...");
     window.location.href = "employee.html";
     return;
   }
 
   if (userEmailSpan) {
-    userEmailSpan.textContent = user.email;
+    // Show "admin" instead of the long ugly email
+    userEmailSpan.textContent = user.displayName || "Admin"; 
   }
 
   // IMPORTANT: start locations listener even if map is hidden
@@ -345,17 +356,17 @@ function startRequestsListener() {
 }
 
 /* ----------------------------------------------------
- * Create employee login
+ * Create employee login (UPDATED FOR DEMO)
  * -------------------------------------------------- */
 
 if (createEmpBtn) {
   createEmpBtn.addEventListener("click", async () => {
     setEmpMessage("", "");
-    const idRaw = newEmpIdInput.value.trim();
+    const usernameRaw = newEmpIdInput.value.trim(); // Now can be "ernest.tan" or "12345"
     const password = newEmpPasswordInput.value;
 
-    if (!/^\d{5}$/.test(idRaw)) {
-      setEmpMessage("Employee ID must be 5 digits.", "red");
+    if (!usernameRaw) {
+      setEmpMessage("Please enter a Username or ID.", "red");
       return;
     }
     if (!password || password.length < 6) {
@@ -363,16 +374,29 @@ if (createEmpBtn) {
       return;
     }
 
-    const email = `${idRaw}@smartasset.com`;
+    // NEW: Construct the Gmail Plus address
+    // If they typed "admin", it becomes "ernesttan24+admin@gmail.com"
+    const realEmail = `${BASE_GMAIL_USER}+${usernameRaw}${GMAIL_DOMAIN}`;
 
     try {
+      // Create user using a Secondary App instance so we don't log out the Admin
       const secondaryApp = initializeApp(firebaseConfig, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
-      await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, realEmail, password);
+      
+      // NEW: Set the Display Name immediately so "Forgot Password" emails look nice
+      await updateProfile(userCredential.user, {
+        displayName: usernameRaw
+      });
 
-      setEmpMessage(`Employee account created for ${email}.`, "green");
+      // Cleanup the secondary app instance
+      await signOut(secondaryAuth);
+
+      setEmpMessage(`Created user: ${usernameRaw}`, "green");
       newEmpIdInput.value = "";
       newEmpPasswordInput.value = "";
+      
     } catch (err) {
       console.error(err);
       setEmpMessage(
