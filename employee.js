@@ -9,7 +9,6 @@ import {
 import {
   getFirestore,
   collection,
-  doc,
   addDoc,
   onSnapshot,
   query,
@@ -18,7 +17,10 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-const ADMIN_EMAIL = "admin@smartasset.com";
+// --- DEMO CONFIGURATION ---
+const BASE_GMAIL_USER = "ernesttan24";
+const GMAIL_DOMAIN = "@gmail.com";
+const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -54,15 +56,17 @@ onAuthStateChanged(auth, (user) => {
     return;
   }
 
-  if (user.email === ADMIN_EMAIL) {
-    window.location.href = "index.html";
+  // Redirect if this is actually the Admin
+  if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    window.location.href = "index.html"; 
     return;
   }
 
   currentUserEmail = user.email;
 
+  // Display Name Logic: Show "ernest.tan" if available, otherwise show email
   if (userEmailSpan) {
-    userEmailSpan.textContent = user.email;
+    userEmailSpan.textContent = user.displayName || user.email;
   }
 
   startAssetsListener();
@@ -73,6 +77,7 @@ onAuthStateChanged(auth, (user) => {
 if (logoutBtn) {
   logoutBtn.addEventListener("click", async () => {
     await signOut(auth);
+    window.location.href = "login.html";
   });
 }
 
@@ -126,6 +131,7 @@ function startMyRequestsListener() {
   if (!myRequestsTableBody || !currentUserEmail) return;
 
   const colRef = collection(db, "borrowRequests");
+  // Queries requests where "requestedBy" matches the current logged-in email
   const q = query(
     colRef,
     where("requestedBy", "==", currentUserEmail),
@@ -184,7 +190,7 @@ if (requestForm) {
         startDate: start,
         endDate: end,
         reason,
-        requestedBy: currentUserEmail,
+        requestedBy: currentUserEmail, // This saves the unique email (e.g., ernesttan24+user@gmail.com)
         status: "Pending",
         createdAt: serverTimestamp()
       });
