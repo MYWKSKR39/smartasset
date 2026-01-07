@@ -1,3 +1,5 @@
+// employee.js
+
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
@@ -25,22 +27,18 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// --- DOM REFERENCES (Matched to your HTML) ---
+// --- DOM REFERENCES ---
 const userEmailSpan = document.getElementById("userEmail");
 const logoutBtn = document.getElementById("logoutBtn");
 
 const assetTableBody = document.getElementById("assetTableBody");
-// Fixed: Removed 's' to match HTML id="myRequestTableBody"
 const myRequestsTableBody = document.getElementById("myRequestTableBody"); 
 
 const requestForm = document.getElementById("borrowForm");
-// Fixed: Changed to match HTML id="assetIdInput"
 const assetIdInput = document.getElementById("assetIdInput"); 
 const startDateInput = document.getElementById("startDateInput");
 const endDateInput = document.getElementById("endDateInput");
-// Fixed: Changed to match HTML id="reasonInput"
 const reasonInput = document.getElementById("reasonInput"); 
-// Fixed: Changed to match HTML id="borrowMessage"
 const requestMessage = document.getElementById("borrowMessage"); 
 
 let currentUserEmail = null;
@@ -67,7 +65,7 @@ onAuthStateChanged(auth, (user) => {
 
   currentUserEmail = user.email;
 
-  // --- NAME DISPLAY LOGIC (The fix you requested) ---
+  // --- NAME DISPLAY LOGIC ---
   if (userEmailSpan) {
     let displayNameToShow = user.email; // Default fallback
 
@@ -171,7 +169,7 @@ function startMyRequestsListener() {
   });
 }
 
-// --- SUBMIT FORM HANDLER ---
+// --- SUBMIT FORM HANDLER (WITH DATE VALIDATION) ---
 if (requestForm) {
   requestForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -187,13 +185,23 @@ if (requestForm) {
       return;
     }
 
+    // --- DATE VALIDATION START ---
+    const startDateObj = new Date(start);
+    const endDateObj = new Date(end);
+
+    if (startDateObj > endDateObj) {
+        setRequestMessage("Error: End date cannot be earlier than start date.", "red");
+        return; 
+    }
+    // --- DATE VALIDATION END ---
+
     try {
       await addDoc(collection(db, "borrowRequests"), {
         assetId,
         startDate: start,
         endDate: end,
         reason,
-        requestedBy: currentUserEmail, // Saves "ernesttan24+ernest.tan@gmail.com"
+        requestedBy: currentUserEmail, 
         status: "Pending",
         createdAt: serverTimestamp()
       });
