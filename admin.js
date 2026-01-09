@@ -26,7 +26,7 @@ const BASE_GMAIL_USER = "ernesttan24";
 const GMAIL_DOMAIN = "@gmail.com";
 
 // This must match the email you manually created in Firebase Console
-const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`; 
+const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -64,7 +64,6 @@ function setEmpMessage(text, color) {
  * -------------------------------------------------- */
 
 let deviceLocationsUnsub = null;
-// Map<deviceId, deviceData>
 const deviceLocationsCache = new Map();
 
 function startDeviceLocationsListener() {
@@ -79,8 +78,6 @@ function startDeviceLocationsListener() {
       snapshot.forEach((docSnap) => {
         deviceLocationsCache.set(docSnap.id, docSnap.data());
       });
-
-      // update tracking column in assets table whenever locations change
       applyTrackingToAssetTable();
     },
     (err) => {
@@ -91,18 +88,13 @@ function startDeviceLocationsListener() {
 
 function formatTimestamp(ts) {
   if (!ts) return null;
-
-  // Firestore Timestamp
   if (ts.toDate && typeof ts.toDate === "function") {
     return ts.toDate();
   }
-
-  // number millis or string date
   try {
     const d = new Date(ts);
     if (!isNaN(d.getTime())) return d;
   } catch (e) {}
-
   return null;
 }
 
@@ -160,26 +152,18 @@ onAuthStateChanged(auth, (user) => {
     return;
   }
   
-  // Strict check: Is this the specific admin email?
   if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    console.log("User is not admin, redirecting to employee page...");
     window.location.href = "employee.html";
     return;
   }
 
   if (userEmailSpan) {
-    // Show "admin" instead of the long ugly email
     userEmailSpan.textContent = user.displayName || "Admin"; 
   }
 
-  // IMPORTANT: start locations listener even if map is hidden
   startDeviceLocationsListener();
-
-  // start normal listeners
   startAssetsListener();
   startRequestsListener();
-
-  // map support
   setupMapUi();
 });
 
@@ -222,12 +206,7 @@ function startAssetsListener() {
     assetTableBody.innerHTML = "";
 
     if (snapshot.empty) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 8; // Asset table now has 8 columns including Tracking
-      td.textContent = "No assets found.";
-      tr.appendChild(td);
-      assetTableBody.appendChild(tr);
+      assetTableBody.innerHTML = '<tr><td colspan="8">No assets found.</td></tr>';
       return;
     }
 
@@ -261,9 +240,7 @@ function startAssetsListener() {
 
       if (editBtn) {
         editBtn.addEventListener("click", () => {
-          window.location.href = `add.html?assetId=${encodeURIComponent(
-            docSnap.id
-          )}`;
+          window.location.href = `add.html?assetId=${encodeURIComponent(docSnap.id)}`;
         });
       }
 
@@ -278,13 +255,12 @@ function startAssetsListener() {
       assetTableBody.appendChild(tr);
     });
 
-    // after rendering assets, apply tracking based on cached locations
     applyTrackingToAssetTable();
   });
 }
 
 /* ----------------------------------------------------
- * Borrow requests table (UPDATED COLOR LOGIC)
+ * Borrow requests table (UPDATED)
  * -------------------------------------------------- */
 
 function startRequestsListener() {
@@ -297,12 +273,7 @@ function startRequestsListener() {
     requestTableBody.innerHTML = "";
 
     if (snapshot.empty) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 7;
-      td.textContent = "No borrow requests yet.";
-      tr.appendChild(td);
-      requestTableBody.appendChild(tr);
+      requestTableBody.innerHTML = '<tr><td colspan="7">No borrow requests yet.</td></tr>';
       return;
     }
 
@@ -310,7 +281,7 @@ function startRequestsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
-      // --- CLEAN NAME LOGIC ---
+      // Clean Name Logic
       let displayName = data.requestedBy || "Unknown";
       if (displayName.includes("+")) {
          const parts = displayName.split('+'); 
@@ -319,7 +290,7 @@ function startRequestsListener() {
          }
       }
 
-      // --- NEW: COLOR LOGIC ---
+      // Status Color Logic
       let statusColor = "black";
       let statusText = data.status || "Pending";
       
@@ -328,7 +299,6 @@ function startRequestsListener() {
       } else if (statusText === "Rejected") {
           statusColor = "red";
       }
-      // -------------------------
 
       tr.innerHTML = `
         <td>${data.assetId || ""}</td>
@@ -413,10 +383,7 @@ if (createEmpBtn) {
       
     } catch (err) {
       console.error(err);
-      setEmpMessage(
-        "Error creating employee: " + (err.code || err.message),
-        "red"
-      );
+      setEmpMessage("Error: " + (err.code || err.message), "red");
     }
   });
 }
@@ -471,13 +438,12 @@ function initDeviceMapInternal() {
       if (mapStatus) {
         mapStatus.textContent = snapshot.empty
           ? "No devices reporting location yet."
-          : `Devices reporting location: ${snapshot.size}`;
+          : `Devices reporting: ${snapshot.size}`;
       }
 
       snapshot.docChanges().forEach((change) => {
         const id = change.doc.id;
         const data = change.doc.data();
-
         const lat = data.lat;
         const lng = data.lng;
 
@@ -493,69 +459,30 @@ function initDeviceMapInternal() {
         if (typeof lat !== "number" || typeof lng !== "number") return;
 
         const position = { lat, lng };
-
-        const batteryPct =
-          typeof data.batteryPct === "number" ? `${data.batteryPct} percent` : "Unknown";
-        const batteryStatus = data.batteryStatus || "";
-        const batteryLine =
-          batteryStatus !== ""
-            ? `Battery: ${batteryPct} (${batteryStatus})`
-            : `Battery: ${batteryPct}`;
-
-        const tempLine =
-          typeof data.batteryTempC === "number"
-            ? `Temperature: ${data.batteryTempC.toFixed(1)} °C`
-            : "";
-
-        const ts = formatTimestamp(data.timestamp);
-        const tsLine = ts ? `Last update: ${ts.toLocaleString()}` : "Last update: Unknown";
-
         const title = data.label || data.deviceName || `Device ${id}`;
+        
+        const ts = formatTimestamp(data.timestamp);
+        const tsLine = ts ? `Updated: ${ts.toLocaleTimeString()}` : "";
 
-        const infoHtml =
-          `${title}<br>` +
-          `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>` +
-          `${batteryLine}<br>` +
-          (tempLine ? `${tempLine}<br>` : "") +
-          tsLine;
+        const infoHtml = `<strong>${title}</strong><br>Bat: ${data.batteryPct || "?"}%<br>${tsLine}`;
 
         let marker = markerMap.get(id);
 
         if (!marker) {
-          marker = new google.maps.Marker({
-            position,
-            map: mapInstance,
-            title,
-          });
-
-          const infoWindow = new google.maps.InfoWindow({
-            content: infoHtml,
-          });
-
-          marker.addListener("click", () => {
-            infoWindow.open({
-              anchor: marker,
-              map: mapInstance,
-              shouldFocus: false,
-            });
-          });
-
+          marker = new google.maps.Marker({ position, map: mapInstance, title });
+          const infoWindow = new google.maps.InfoWindow({ content: infoHtml });
+          marker.addListener("click", () => infoWindow.open({ anchor: marker, map: mapInstance }));
           marker.infoWindow = infoWindow;
           markerMap.set(id, marker);
         } else {
           marker.setPosition(position);
           marker.setTitle(title);
-          if (marker.infoWindow) {
-            marker.infoWindow.setContent(infoHtml);
-          }
+          if (marker.infoWindow) marker.infoWindow.setContent(infoHtml);
         }
       });
     },
     (err) => {
-      console.error("Error listening to deviceLocations for map", err);
-      if (mapStatus) {
-        mapStatus.textContent = "Error loading locations: " + (err.code || err.message);
-      }
+      console.error("Error listening to map", err);
     }
   );
 }
