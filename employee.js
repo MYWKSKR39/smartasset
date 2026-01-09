@@ -11,7 +11,7 @@ import {
   getFirestore,
   collection,
   addDoc,
-  getDocs, // <-- ADDED THIS to read data once for checking conflicts
+  getDocs,
   onSnapshot,
   query,
   where,
@@ -128,12 +128,11 @@ function startAssetsListener() {
   });
 }
 
-// --- MY REQUESTS TABLE ---
+// --- MY REQUESTS TABLE (UPDATED COLOR LOGIC) ---
 function startMyRequestsListener() {
   if (!myRequestsTableBody || !currentUserEmail) return;
 
   const colRef = collection(db, "borrowRequests");
-  // Query only requests made by this specific email
   const q = query(
     colRef,
     where("requestedBy", "==", currentUserEmail),
@@ -152,12 +151,23 @@ function startMyRequestsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
+      // --- NEW: COLOR LOGIC ---
+      let statusColor = "black";
+      let statusText = data.status || "Pending";
+      
+      if (statusText === "Approved") {
+          statusColor = "green";
+      } else if (statusText === "Rejected") {
+          statusColor = "red";
+      }
+      // -------------------------
+
       tr.innerHTML = `
         <td>${data.assetId || ""}</td>
         <td>${data.startDate || ""}</td>
         <td>${data.endDate || ""}</td>
         <td>${data.reason || ""}</td>
-        <td>${data.status || ""}</td>
+        <td style="color: ${statusColor}; font-weight: bold;">${statusText}</td>
       `;
 
       myRequestsTableBody.appendChild(tr);
@@ -165,7 +175,7 @@ function startMyRequestsListener() {
   });
 }
 
-// --- SUBMIT FORM HANDLER (WITH CONFLICT CHECK) ---
+// --- SUBMIT FORM HANDLER ---
 if (requestForm) {
   requestForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -181,7 +191,6 @@ if (requestForm) {
       return;
     }
 
-    // 1. Basic Date Validation
     const newStartObj = new Date(start);
     const newEndObj = new Date(end);
 
@@ -193,7 +202,6 @@ if (requestForm) {
     setRequestMessage("Checking availability...", "blue");
 
     try {
-      // 2. CONFLICT CHECK: Query existing requests for this asset
       const qConflict = query(
           collection(db, "borrowRequests"), 
           where("assetId", "==", assetId)
@@ -204,15 +212,11 @@ if (requestForm) {
 
       querySnapshot.forEach((doc) => {
           const data = doc.data();
-          
-          // Ignore rejected or returned requests (they don't block the asset)
           if (data.status === "Rejected" || data.status === "Returned") return;
 
           const existingStart = new Date(data.startDate);
           const existingEnd = new Date(data.endDate);
 
-          // Check for Date Overlap
-          // (StartA <= EndB) AND (EndA >= StartB) means they overlap
           if (newStartObj <= existingEnd && newEndObj >= existingStart) {
               conflictFound = true;
           }
@@ -220,10 +224,9 @@ if (requestForm) {
 
       if (conflictFound) {
           setRequestMessage("Unavailable: Asset is already booked for these dates.", "red");
-          return; // Stop execution here
+          return; 
       }
 
-      // 3. If no conflict, proceed to submit
       await addDoc(collection(db, "borrowRequests"), {
         assetId,
         startDate: start,
@@ -236,7 +239,6 @@ if (requestForm) {
 
       setRequestMessage("Request submitted successfully!", "green");
 
-      // Clear form
       assetIdInput.value = "";
       startDateInput.value = "";
       endDateInput.value = "";
