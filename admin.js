@@ -156,14 +156,17 @@ function applyTrackingToAssetTable() {
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    window.location.href = "login.html";
+    window.location.replace("login.html");
     return;
   }
   
   if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    window.location.href = "employee.html";
+    window.location.replace("employee.html");
     return;
   }
+
+  // Auth confirmed — reveal the page
+  document.body.style.visibility = "visible";
 
   if (userEmailSpan) {
     userEmailSpan.textContent = user.displayName || "Admin"; 
