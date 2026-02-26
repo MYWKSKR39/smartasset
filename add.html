@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <title>SmartAsset - Add or edit asset</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="admin.css" />
 </head>
-<body>
+<body style="visibility:hidden">
   <header class="hero">
     <h1>Add or edit asset</h1>
     <p>Fill in the asset details and save</p>
@@ -87,17 +90,6 @@
                 id="status"
                 type="text"
                 placeholder="Active, In repair, etc."
-              />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="deviceId">Device ID <span style="font-weight:400;color:#6b7280;">(optional — links live tracking)</span></label>
-              <input
-                id="deviceId"
-                type="text"
-                placeholder="e.g. 068d43bb266d87e6"
               />
             </div>
           </div>
