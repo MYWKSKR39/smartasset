@@ -17,6 +17,7 @@ import {
 const BASE_GMAIL_USER = "ernesttan24";
 const GMAIL_DOMAIN = "@gmail.com";
 const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -35,6 +36,7 @@ const categoryInput = document.getElementById("category");
 const ownerInput = document.getElementById("owner");
 const locationInput = document.getElementById("location");
 const statusInput = document.getElementById("status");
+const deviceIdInput = document.getElementById("deviceId");
 
 const formMessage = document.getElementById("formMessage");
 
@@ -66,9 +68,8 @@ onAuthStateChanged(auth, async (user) => {
 
   userEmailSpan.textContent = user.email;
 
-
-if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {   
-  window.location.href = "employee.html";
+  if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    window.location.href = "employee.html";
     return;
   }
 
@@ -116,6 +117,7 @@ async function loadAsset(assetId) {
     ownerInput.value = data.owner || "";
     locationInput.value = data.location || "";
     statusInput.value = data.status || "";
+    deviceIdInput.value = data.deviceId || "";
   } catch (err) {
     console.error("Error loading asset", err);
     setFormMessage("Error loading asset: " + (err.code || err.message), "red");
@@ -134,6 +136,7 @@ assetForm.addEventListener("submit", async (e) => {
   const owner = ownerInput.value.trim();
   const location = locationInput.value.trim();
   const status = statusInput.value.trim();
+  const deviceId = deviceIdInput.value.trim();
 
   if (!assetId || !name) {
     setFormMessage("Asset ID and Name are required.", "red");
@@ -182,6 +185,7 @@ assetForm.addEventListener("submit", async (e) => {
         owner,
         location,
         status,
+        deviceId,
       },
       { merge: true }
     );
