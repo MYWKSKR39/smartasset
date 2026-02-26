@@ -24,64 +24,58 @@
   <main>
     <div class="content-wrapper">
 
-      <div class="cards-row">
-
-        <section class="content-card card-half">
-          <div class="content-header">
-            <h2>Current assets</h2>
-
-            <div style="display:flex; gap:10px;">
-              <button id="addAssetBtn" class="primary-btn">Add asset</button>
-              <button id="toggleEmpMenu" class="primary-btn">Create employee login</button>
-            </div>
+      <section class="content-card">
+        <div class="content-header">
+          <h2>Current assets</h2>
+          <div style="display:flex; gap:10px;">
+            <button id="addAssetBtn" class="primary-btn">Add asset</button>
+            <button id="toggleEmpMenu" class="primary-btn">Create employee login</button>
           </div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Owner</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Tracking</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody">
+              <tr><td colspan="8">Loading assets...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Owner</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Tracking</th> <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="assetTableBody">
-                <tr><td colspan="8">Loading assets...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="content-card card-half">
-          <div class="content-header">
-            <h2>Borrow requests</h2>
-          </div>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Requested by</th>
-                  <th>Start date</th>
-                  <th>End date</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="requestTableBody">
-                <tr><td colspan="7">Loading requests...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-      </div>
+      <section class="content-card">
+        <div class="content-header">
+          <h2>Borrow requests</h2>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Requested by</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="requestTableBody">
+              <tr><td colspan="7">Loading requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
 
       <section id="employeeMenu" class="content-card full-width-card" style="display:none;">
