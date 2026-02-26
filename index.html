@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <title>SmartAsset - Admin Dashboard</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="admin.css" />
 </head>
 
-<body>
+<body style="visibility:hidden">
   <header class="hero">
     <h1>Welcome to SmartAsset</h1>
     <p>A smarter way to manage your IT assets</p>
@@ -24,58 +27,64 @@
   <main>
     <div class="content-wrapper">
 
-      <section class="content-card">
-        <div class="content-header">
-          <h2>Current assets</h2>
-          <div style="display:flex; gap:10px;">
-            <button id="addAssetBtn" class="primary-btn">Add asset</button>
-            <button id="toggleEmpMenu" class="primary-btn">Create employee login</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Owner</th>
-                <th>Location</th>
-                <th>Status</th>
-                <th>Tracking</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="assetTableBody">
-              <tr><td colspan="8">Loading assets...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div class="cards-row">
 
-      <section class="content-card">
-        <div class="content-header">
-          <h2>Borrow requests</h2>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th>
-                <th>Requested by</th>
-                <th>Start date</th>
-                <th>End date</th>
-                <th>Reason</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="requestTableBody">
-              <tr><td colspan="7">Loading requests...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Current assets</h2>
+
+            <div style="display:flex; gap:10px;">
+              <button id="addAssetBtn" class="primary-btn">Add asset</button>
+              <button id="toggleEmpMenu" class="primary-btn">Create employee login</button>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Owner</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Tracking</th> <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assetTableBody">
+                <tr><td colspan="8">Loading assets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="content-card card-half">
+          <div class="content-header">
+            <h2>Borrow requests</h2>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Requested by</th>
+                  <th>Start date</th>
+                  <th>End date</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="requestTableBody">
+                <tr><td colspan="7">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
 
 
       <section id="employeeMenu" class="content-card full-width-card" style="display:none;">
