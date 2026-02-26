@@ -102,42 +102,50 @@ function applyTrackingToAssetTable() {
   if (!assetTableBody) return;
 
   const now = Date.now();
+
+  // Build a reverse map: hardwareDeviceId → locationData
+  // (deviceLocationsCache is already keyed by hardware device ID)
   const rows = assetTableBody.querySelectorAll("tr");
 
   rows.forEach((row) => {
-    const idCell = row.cells && row.cells[0];
-    if (!idCell) return;
-
-    const assetId = (idCell.textContent || "").trim();
-    if (!assetId) return;
-
     const trackingCell = row.querySelector(".asset-tracking-cell");
     if (!trackingCell) return;
 
-    const deviceData = deviceLocationsCache.get(assetId);
+    // Each row stores the linked hardware device ID as a data attribute
+    const linkedDeviceId = row.dataset.deviceId;
+    if (!linkedDeviceId) {
+      trackingCell.textContent = "Not linked";
+      trackingCell.title = "Edit the asset to add a Device ID";
+      trackingCell.style.color = "#9ca3af";
+      return;
+    }
 
+    const deviceData = deviceLocationsCache.get(linkedDeviceId);
     if (!deviceData) {
-      trackingCell.textContent = "Not tracked";
-      trackingCell.title = "";
+      trackingCell.textContent = "No signal";
+      trackingCell.title = `Device ID: ${linkedDeviceId} — not reporting`;
+      trackingCell.style.color = "#9ca3af";
       return;
     }
 
     const ts = formatTimestamp(deviceData.timestamp);
     if (!ts) {
       trackingCell.textContent = "Tracked, no timestamp";
-      trackingCell.title = "";
+      trackingCell.style.color = "";
       return;
     }
 
     const ageMs = now - ts.getTime();
     const ageMinutes = ageMs / 60000;
+    const tsStr = `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`;
 
     if (ageMinutes <= 2) {
-      trackingCell.textContent = "Live";
-      trackingCell.title = `Last seen: ${ts.toLocaleString()}`;
+      trackingCell.innerHTML = `<span style="color:#16a34a;font-weight:600;">● Live</span>`;
+      trackingCell.title = `Last seen: ${tsStr}`;
     } else {
-      trackingCell.textContent = `Last seen: ${ts.toLocaleString()}`;
-      trackingCell.title = `Last seen: ${ts.toLocaleString()}`;
+      trackingCell.textContent = `Last seen: ${tsStr}`;
+      trackingCell.title = "";
+      trackingCell.style.color = "";
     }
   });
 }
@@ -220,6 +228,22 @@ function startAssetsListener() {
       const owner = data.owner || "";
       const location = data.location || "";
       const status = data.status || "";
+      const deviceId = data.deviceId || "";
+
+      // Store deviceId so applyTrackingToAssetTable can look it up
+      if (deviceId) tr.dataset.deviceId = deviceId;
+
+      // Status colour chip
+      const statusColors = {
+        "Available":  { bg: "#dcfce7", color: "#15803d" },
+        "On loan":    { bg: "#dbeafe", color: "#1d4ed8" },
+        "In repair":  { bg: "#fef9c3", color: "#a16207" },
+        "Retired":    { bg: "#f3f4f6", color: "#6b7280" },
+      };
+      const chipStyle = statusColors[status] || { bg: "#f3f4f6", color: "#374151" };
+      const statusChip = status
+        ? `<span style="background:${chipStyle.bg};color:${chipStyle.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${status}</span>`
+        : "";
 
       tr.innerHTML = `
         <td>${assetId}</td>
@@ -227,8 +251,8 @@ function startAssetsListener() {
         <td>${category}</td>
         <td>${owner}</td>
         <td>${location}</td>
-        <td class="asset-status-cell">${status}</td>
-        <td class="asset-tracking-cell">Not tracked</td>
+        <td class="asset-status-cell">${statusChip}</td>
+        <td class="asset-tracking-cell" style="color:#9ca3af;">Not linked</td>
         <td>
           <button class="edit-btn table-action-btn">Edit</button>
           <button class="delete-btn table-action-btn">Remove</button>
@@ -273,7 +297,7 @@ function startRequestsListener() {
     requestTableBody.innerHTML = "";
 
     if (snapshot.empty) {
-      requestTableBody.innerHTML = '<tr><td colspan="7">No borrow requests yet.</td></tr>';
+      requestTableBody.innerHTML = '<tr><td colspan="8">No borrow requests yet.</td></tr>';
       return;
     }
 
@@ -281,61 +305,94 @@ function startRequestsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
-      // Clean Name Logic
+      // Clean display name
       let displayName = data.requestedBy || "Unknown";
       if (displayName.includes("+")) {
-         const parts = displayName.split('+'); 
-         if (parts[1]) {
-             displayName = parts[1].split('@')[0];
-         }
+        const parts = displayName.split("+");
+        if (parts[1]) displayName = parts[1].split("@")[0];
       }
 
-      // Status Color Logic
-      let statusColor = "black";
-      let statusText = data.status || "Pending";
-      
-      if (statusText === "Approved") {
-          statusColor = "green";
-      } else if (statusText === "Rejected") {
-          statusColor = "red";
-      }
+      // Status colour
+      const statusText = data.status || "Pending";
+      const statusColors = {
+        "Pending":  { bg: "#fef9c3", color: "#a16207" },
+        "Approved": { bg: "#dcfce7", color: "#15803d" },
+        "Rejected": { bg: "#fee2e2", color: "#b91c1c" },
+        "Returned": { bg: "#f3f4f6", color: "#6b7280" },
+      };
+      const sc = statusColors[statusText] || { bg: "#f3f4f6", color: "#374151" };
+      const statusChip = `<span style="background:${sc.bg};color:${sc.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${statusText}</span>`;
+
+      // Admin note shown if rejected
+      const noteCell = (statusText === "Rejected" && data.adminNote)
+        ? `<span style="font-size:0.75rem;color:#6b7280;display:block;">${data.adminNote}</span>`
+        : "";
 
       tr.innerHTML = `
         <td>${data.assetId || ""}</td>
         <td>${displayName}</td>
         <td>${data.startDate || ""}</td>
         <td>${data.endDate || ""}</td>
-        <td>${data.reason || ""}</td>
-        <td style="color: ${statusColor}; font-weight: bold;">${statusText}</td>
+        <td>${data.reason || ""}${noteCell}</td>
+        <td>${statusChip}</td>
         <td>
-          <button class="approve-btn table-action-btn">Approve</button>
-          <button class="reject-btn table-action-btn">Reject</button>
+          <button class="approve-btn table-action-btn" ${statusText !== "Pending" ? "disabled style='opacity:0.4;cursor:default;'" : ""}>Approve</button>
+          <button class="reject-btn table-action-btn" ${["Rejected","Returned"].includes(statusText) ? "disabled style='opacity:0.4;cursor:default;'" : ""}>Reject</button>
+          <button class="return-btn table-action-btn" ${statusText !== "Approved" ? "disabled style='opacity:0.4;cursor:default;'" : "style='background:#dbeafe;'"}>Returned</button>
         </td>
       `;
 
       const approveBtn = tr.querySelector(".approve-btn");
-      const rejectBtn = tr.querySelector(".reject-btn");
+      const rejectBtn  = tr.querySelector(".reject-btn");
+      const returnBtn  = tr.querySelector(".return-btn");
 
-      if (approveBtn) {
+      if (approveBtn && statusText === "Pending") {
         approveBtn.addEventListener("click", async () => {
+          const ok = confirm(`Approve borrow request for ${data.assetId}?`);
+          if (!ok) return;
+          // 1. Update request
           await updateDoc(doc(db, "borrowRequests", docSnap.id), {
             status: "Approved",
             reviewedAt: serverTimestamp(),
           });
+          // 2. Auto-update asset status to "On loan"
+          await updateDoc(doc(db, "assets", data.assetId), {
+            status: "On loan",
+          });
         });
       }
 
-      if (rejectBtn) {
+      if (rejectBtn && !["Rejected","Returned"].includes(statusText)) {
         rejectBtn.addEventListener("click", async () => {
-          const note = prompt("Optional rejection reason", data.adminNote || "");
+          const note = prompt("Optional rejection reason:", data.adminNote || "");
+          if (note === null) return; // cancelled
           const update = {
             status: "Rejected",
             reviewedAt: serverTimestamp(),
           };
-          if (note && note.trim() !== "") {
-            update.adminNote = note.trim();
-          }
+          if (note.trim()) update.adminNote = note.trim();
+          // 1. Update request
           await updateDoc(doc(db, "borrowRequests", docSnap.id), update);
+          // 2. Set asset back to Available if it was on loan due to this request
+          await updateDoc(doc(db, "assets", data.assetId), {
+            status: "Available",
+          });
+        });
+      }
+
+      if (returnBtn && statusText === "Approved") {
+        returnBtn.addEventListener("click", async () => {
+          const ok = confirm(`Mark ${data.assetId} as returned?`);
+          if (!ok) return;
+          // 1. Update request
+          await updateDoc(doc(db, "borrowRequests", docSnap.id), {
+            status: "Returned",
+            returnedAt: serverTimestamp(),
+          });
+          // 2. Set asset back to Available
+          await updateDoc(doc(db, "assets", data.assetId), {
+            status: "Available",
+          });
         });
       }
 
@@ -462,20 +519,9 @@ function initDeviceMapInternal() {
         const title = data.label || data.deviceName || `Device ${id}`;
         
         const ts = formatTimestamp(data.timestamp);
-        const tsLine = ts
-          ? `Updated: ${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
-          : "";
+        const tsLine = ts ? `Updated: ${ts.toLocaleTimeString()}` : "";
 
-        const batPct  = data.batteryPct  != null ? `${data.batteryPct}%` : "?";
-        const batStat = data.batteryStatus || "";
-        const batTemp = data.batteryTempC != null ? `${Number(data.batteryTempC).toFixed(1)} °C` : null;
-
-        const infoHtml = `
-          <div style="font-family:system-ui,sans-serif;font-size:0.85rem;line-height:1.6;min-width:180px;">
-            <strong style="font-size:0.95rem;">${title}</strong><br>
-            🔋 ${batPct}${batStat ? ` · ${batStat}` : ""}${batTemp ? `<br>🌡️ ${batTemp}` : ""}
-            ${tsLine ? `<br><span style="color:#888;font-size:0.78rem;">${tsLine}</span>` : ""}
-          </div>`;
+        const infoHtml = `<strong>${title}</strong><br>Bat: ${data.batteryPct || "?"}%<br>${tsLine}`;
 
         let marker = markerMap.get(id);
 
