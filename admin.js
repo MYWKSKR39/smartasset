@@ -462,14 +462,16 @@ function initDeviceMapInternal() {
         const title = data.label || data.deviceName || `Device ${id}`;
         
         const ts = formatTimestamp(data.timestamp);
-        const tsLine = ts ? `Updated: ${ts.toLocaleTimeString()}` : "";
+        const tsLine = ts
+          ? `Updated: ${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
+          : "";
 
-        const batPct   = data.batteryPct  != null ? `${data.batteryPct}%`   : "?";
-        const batStat  = data.batteryStatus || "";
-        const batTemp  = data.batteryTempC != null ? `${Number(data.batteryTempC).toFixed(1)} °C` : null;
+        const batPct  = data.batteryPct  != null ? `${data.batteryPct}%` : "?";
+        const batStat = data.batteryStatus || "";
+        const batTemp = data.batteryTempC != null ? `${Number(data.batteryTempC).toFixed(1)} °C` : null;
 
         const infoHtml = `
-          <div style="font-family:system-ui,sans-serif;font-size:0.85rem;line-height:1.6;min-width:160px;">
+          <div style="font-family:system-ui,sans-serif;font-size:0.85rem;line-height:1.6;min-width:180px;">
             <strong style="font-size:0.95rem;">${title}</strong><br>
             🔋 ${batPct}${batStat ? ` · ${batStat}` : ""}${batTemp ? `<br>🌡️ ${batTemp}` : ""}
             ${tsLine ? `<br><span style="color:#888;font-size:0.78rem;">${tsLine}</span>` : ""}
