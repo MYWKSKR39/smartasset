@@ -224,23 +224,25 @@ function startMyRequestsListener() {
       const data = docSnap.data();
       const tr = document.createElement("tr");
 
-      // --- NEW: COLOR LOGIC ---
-      let statusColor = "black";
-      let statusText = data.status || "Pending";
-      
-      if (statusText === "Approved") {
-          statusColor = "green";
-      } else if (statusText === "Rejected") {
-          statusColor = "red";
-      }
-      // -------------------------
+      const statusText = data.status || "Pending";
+      const statusColors = {
+        "Pending":  { bg: "#fef9c3", color: "#a16207" },
+        "Approved": { bg: "#dcfce7", color: "#15803d" },
+        "Rejected": { bg: "#fee2e2", color: "#b91c1c" },
+        "Returned": { bg: "#f3f4f6", color: "#6b7280" },
+      };
+      const sc = statusColors[statusText] || { bg: "#f3f4f6", color: "#374151" };
+      const statusChip = `<span style="background:${sc.bg};color:${sc.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${statusText}</span>`;
+      const noteCell = (statusText === "Rejected" && data.adminNote)
+        ? `<span style="font-size:0.75rem;color:#6b7280;display:block;">Reason: ${data.adminNote}</span>`
+        : "";
 
       tr.innerHTML = `
         <td>${data.assetId || ""}</td>
         <td>${data.startDate || ""}</td>
         <td>${data.endDate || ""}</td>
-        <td>${data.reason || ""}</td>
-        <td style="color: ${statusColor}; font-weight: bold;">${statusText}</td>
+        <td>${data.reason || ""}${noteCell}</td>
+        <td>${statusChip}</td>
       `;
 
       myRequestsTableBody.appendChild(tr);
