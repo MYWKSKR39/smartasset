@@ -8,6 +8,52 @@
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="admin.css" />
+  <style>
+    .asset-form .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .asset-form .form-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      font-size: 0.85rem;
+    }
+    .asset-form .form-group label {
+      margin-bottom: 0.25rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .asset-form .form-group input,
+    .asset-form .form-group select {
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.85rem;
+      font-family: inherit;
+      background: #fff;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem center;
+      padding-right: 2rem;
+    }
+    .asset-form .form-group input {
+      background-image: none;
+      padding-right: 0.6rem;
+    }
+    .asset-form .form-group select:focus,
+    .asset-form .form-group input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.3);
+    }
+    @media (max-width: 600px) {
+      .asset-form .form-row { flex-direction: column; }
+    }
+  </style>
 </head>
 <body style="visibility:hidden">
   <header class="hero">
@@ -57,40 +103,63 @@
           <div class="form-row">
             <div class="form-group">
               <label for="category">Category</label>
-              <input
-                id="category"
-                type="text"
-                placeholder="Laptop, Mobile, etc."
-              />
+              <select id="category">
+                <option value="">— Select category —</option>
+                <option value="Laptop">Laptop</option>
+                <option value="Desktop">Desktop</option>
+                <option value="Mobile">Mobile</option>
+                <option value="Tablet">Tablet</option>
+                <option value="Monitor">Monitor</option>
+                <option value="Peripheral">Peripheral</option>
+                <option value="Projector">Projector</option>
+                <option value="Conference">Conference</option>
+                <option value="Networking">Networking</option>
+                <option value="Storage">Storage</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             <div class="form-group">
               <label for="owner">Owner / department</label>
-              <input
-                id="owner"
-                type="text"
-                placeholder="IT, HR, John, etc."
-              />
+              <select id="owner">
+                <option value="">— Select department —</option>
+                <option value="IT">IT</option>
+                <option value="HR">HR</option>
+                <option value="Finance">Finance</option>
+                <option value="Management">Management</option>
+                <option value="Sales">Sales</option>
+                <option value="Operations">Operations</option>
+                <option value="Marketing">Marketing</option>
+              </select>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label for="location">Location</label>
-              <input
-                id="location"
-                type="text"
-                placeholder="e.g. Pasir ris interchange"
-              />
+              <select id="location">
+                <option value="">— Select location —</option>
+                <option value="HQ Level 1">HQ Level 1</option>
+                <option value="HQ Level 2">HQ Level 2</option>
+                <option value="HQ Level 3">HQ Level 3</option>
+                <option value="Meeting Room A">Meeting Room A</option>
+                <option value="Meeting Room B">Meeting Room B</option>
+                <option value="Loyang Depot">Loyang Depot</option>
+                <option value="Tampines Interchange">Tampines Interchange</option>
+                <option value="Pasir Ris Interchange">Pasir Ris Interchange</option>
+                <option value="Storage Room">Storage Room</option>
+              </select>
             </div>
 
             <div class="form-group">
               <label for="status">Status</label>
-              <input
-                id="status"
-                type="text"
-                placeholder="Active, In repair, etc."
-              />
+              <select id="status">
+                <option value="">— Select status —</option>
+                <option value="Available">Available</option>
+                <option value="On loan">On loan</option>
+                <option value="In repair">In repair</option>
+                <option value="Retired">Retired</option>
+              </select>
             </div>
           </div>
 
