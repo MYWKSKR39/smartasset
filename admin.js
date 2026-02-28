@@ -113,6 +113,7 @@ historyModal.addEventListener("click", (e) => {
 });
 
 let historyUnsub = null;
+let historyReqUnsub = null;
 
 function openHistoryModal(assetId) {
   historyModal.style.display = "flex";
@@ -120,49 +121,135 @@ function openHistoryModal(assetId) {
   const body = document.getElementById("historyModalBody");
   body.innerHTML = `<p style="color:#9ca3af;font-size:0.85rem;">Loading...</p>`;
 
+  // Stop any previous listeners
   if (historyUnsub) historyUnsub();
+  if (historyReqUnsub) historyReqUnsub();
 
-  const q = query(
-    collection(db, "assetHistory"),
-    where("assetId", "==", assetId),
-    orderBy("timestamp", "desc")
-  );
+  const actionColors = {
+    "Borrowed":  { bg: "#dbeafe", color: "#1d4ed8" },
+    "Returned":  { bg: "#dcfce7", color: "#15803d" },
+    "Rejected":  { bg: "#fee2e2", color: "#b91c1c" },
+    "Pending":   { bg: "#fef9c3", color: "#a16207" },
+    "Added":     { bg: "#f3e8ff", color: "#7c3aed" },
+    "Edited":    { bg: "#fef9c3", color: "#a16207" },
+    "Removed":   { bg: "#fee2e2", color: "#b91c1c" },
+  };
 
-  historyUnsub = onSnapshot(q, (snapshot) => {
-    if (snapshot.empty) {
+  // Hold both snapshots so we can merge and re-render whenever either updates
+  let historyDocs = [];
+  let requestDocs = [];
+
+  function renderMerged() {
+    // Build unified event list from both sources
+    const events = [];
+
+    // From assetHistory collection
+    historyDocs.forEach((d) => {
+      const h = d.data();
+      const ts = h.timestamp?.toDate?.() || null;
+      events.push({ ts, action: h.action, detail: h.detail || "" });
+    });
+
+    // From borrowRequests collection — derive events from status + timestamps
+    requestDocs.forEach((d) => {
+      const r = d.data();
+
+      // Clean up requester name
+      let name = r.requestedBy || "Unknown";
+      if (name.includes("+")) {
+        const parts = name.split("+");
+        if (parts[1]) name = parts[1].split("@")[0];
+      }
+
+      const dateRange = `${r.startDate || "?"} → ${r.endDate || "?"}`;
+
+      // Request submitted
+      if (r.createdAt) {
+        events.push({
+          ts: r.createdAt.toDate?.() || null,
+          action: "Requested",
+          detail: `${name} requested · ${dateRange}${r.reason ? ` · "${r.reason}"` : ""}`,
+        });
+      }
+
+      // Approved
+      if (r.reviewedAt && r.status === "Approved") {
+        events.push({
+          ts: r.reviewedAt.toDate?.() || null,
+          action: "Borrowed",
+          detail: `Approved for ${name} · ${dateRange}`,
+        });
+      }
+
+      // Rejected
+      if (r.reviewedAt && r.status === "Rejected") {
+        events.push({
+          ts: r.reviewedAt.toDate?.() || null,
+          action: "Rejected",
+          detail: `Request by ${name} rejected${r.adminNote ? `: ${r.adminNote}` : ""}`,
+        });
+      }
+
+      // Returned
+      if (r.returnedAt) {
+        events.push({
+          ts: r.returnedAt.toDate?.() || null,
+          action: "Returned",
+          detail: `Returned by ${name}`,
+        });
+      }
+    });
+
+    if (events.length === 0) {
       body.innerHTML = `<p style="color:#9ca3af;font-size:0.85rem;">No history recorded yet.</p>`;
       return;
     }
 
-    const actionColors = {
-      "Borrowed":  { bg: "#dbeafe", color: "#1d4ed8" },
-      "Returned":  { bg: "#dcfce7", color: "#15803d" },
-      "Rejected":  { bg: "#fee2e2", color: "#b91c1c" },
-      "Added":     { bg: "#f3e8ff", color: "#7c3aed" },
-      "Edited":    { bg: "#fef9c3", color: "#a16207" },
-      "Removed":   { bg: "#fee2e2", color: "#b91c1c" },
-      "On loan":   { bg: "#dbeafe", color: "#1d4ed8" },
-    };
+    // Sort newest first
+    events.sort((a, b) => {
+      if (!a.ts) return -1;
+      if (!b.ts) return 1;
+      return b.ts - a.ts;
+    });
 
-    body.innerHTML = snapshot.docs.map((d) => {
-      const h = d.data();
-      const ts = h.timestamp?.toDate?.();
+    body.innerHTML = events.map(({ ts, action, detail }) => {
       const timeStr = ts
         ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
         : "Just now";
-      const ac = actionColors[h.action] || { bg: "#f3f4f6", color: "#374151" };
+      const ac = actionColors[action] || { bg: "#f3f4f6", color: "#374151" };
       return `
         <div style="display:flex;align-items:flex-start;gap:0.75rem;
                     padding:0.65rem 0;border-bottom:1px solid #f3f4f6;">
           <span style="background:${ac.bg};color:${ac.color};padding:0.15rem 0.6rem;
                        border-radius:999px;font-size:0.75rem;font-weight:600;
-                       white-space:nowrap;flex-shrink:0;">${h.action}</span>
+                       white-space:nowrap;flex-shrink:0;">${action}</span>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:0.85rem;color:#111827;">${h.detail || ""}</div>
+            <div style="font-size:0.85rem;color:#111827;">${detail}</div>
             <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.1rem;">${timeStr}</div>
           </div>
         </div>`;
     }).join("");
+  }
+
+  // Listen to assetHistory
+  const qHistory = query(
+    collection(db, "assetHistory"),
+    where("assetId", "==", assetId),
+    orderBy("timestamp", "desc")
+  );
+  historyUnsub = onSnapshot(qHistory, (snapshot) => {
+    historyDocs = snapshot.docs;
+    renderMerged();
+  });
+
+  // Listen to borrowRequests for this asset
+  const qReqs = query(
+    collection(db, "borrowRequests"),
+    where("assetId", "==", assetId)
+  );
+  historyReqUnsub = onSnapshot(qReqs, (snapshot) => {
+    requestDocs = snapshot.docs;
+    renderMerged();
   });
 }
 
