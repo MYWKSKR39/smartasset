@@ -10,8 +10,11 @@ import {
 import {
   getFirestore,
   doc,
+  addDoc,
   getDoc,
   setDoc,
+  collection,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const ADMIN_EMAIL = "admin@smartasset.com";
@@ -187,6 +190,18 @@ assetForm.addEventListener("submit", async (e) => {
     );
 
     setFormMessage("Asset saved successfully.", "green");
+
+    // Log to history
+    const action = existingAssetId ? "Edited" : "Added";
+    const detail = existingAssetId
+      ? `${name} updated`
+      : `${name} added to inventory`;
+    await addDoc(collection(db, "assetHistory"), {
+      assetId,
+      action,
+      detail,
+      timestamp: serverTimestamp(),
+    });
 
     setTimeout(() => {
       window.location.href = "index.html";
