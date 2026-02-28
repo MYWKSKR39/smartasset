@@ -162,6 +162,20 @@
             </div>
           </div>
 
+          <div class="form-row" id="deviceIdRow" style="display:none;">
+            <div class="form-group" style="flex:1;">
+              <label for="deviceId">Device ID <span style="color:#9ca3af;font-weight:400;">(optional — links live GPS tracking)</span></label>
+              <input
+                id="deviceId"
+                type="text"
+                placeholder="e.g. 068d43bb266d87e6"
+              />
+              <span style="font-size:0.75rem;color:#9ca3af;margin-top:0.25rem;">
+                Find this in Firebase Console → Firestore → deviceLocations → document ID
+              </span>
+            </div>
+          </div>
+
           <div class="form-row">
             <button id="saveBtn" class="primary-btn" type="submit">
               Save asset
