@@ -17,9 +17,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-const BASE_GMAIL_USER = "ernesttan24";
-const GMAIL_DOMAIN = "@gmail.com";
-const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
+const ADMIN_EMAIL = "admin@smartasset.com";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -39,6 +37,7 @@ const categoryInput = document.getElementById("category");
 const ownerInput = document.getElementById("owner");
 const locationInput = document.getElementById("location");
 const statusInput = document.getElementById("status");
+const deviceIdInput = document.getElementById("deviceId");
 
 const formMessage = document.getElementById("formMessage");
 
@@ -121,6 +120,11 @@ async function loadAsset(assetId) {
     ownerInput.value = data.owner || "";
     locationInput.value = data.location || "";
     statusInput.value = data.status || "";
+    if (deviceIdInput) deviceIdInput.value = data.deviceId || "";
+
+    // Show Device ID field only in edit mode
+    const deviceIdRow = document.getElementById("deviceIdRow");
+    if (deviceIdRow) deviceIdRow.style.display = "flex";
   } catch (err) {
     console.error("Error loading asset", err);
     setFormMessage("Error loading asset: " + (err.code || err.message), "red");
@@ -139,6 +143,7 @@ assetForm.addEventListener("submit", async (e) => {
   const owner = ownerInput.value.trim();
   const location = locationInput.value.trim();
   const status = statusInput.value.trim();
+  const deviceId = deviceIdInput ? deviceIdInput.value.trim() : "";
 
   if (!assetId || !name) {
     setFormMessage("Asset ID and Name are required.", "red");
@@ -187,6 +192,7 @@ assetForm.addEventListener("submit", async (e) => {
         owner,
         location,
         status,
+        deviceId,
       },
       { merge: true }
     );
