@@ -17,7 +17,9 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-const ADMIN_EMAIL = "admin@smartasset.com";
+const BASE_GMAIL_USER = "ernesttan24";
+const GMAIL_DOMAIN = "@gmail.com";
+const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
