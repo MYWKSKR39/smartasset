@@ -13,9 +13,11 @@ import {
   getFirestore,
   collection,
   doc,
+  addDoc,
   onSnapshot,
   query,
   orderBy,
+  where,
   deleteDoc,
   updateDoc,
   serverTimestamp,
@@ -57,6 +59,111 @@ function setEmpMessage(text, color) {
   if (!createEmpMessage) return;
   createEmpMessage.textContent = text;
   createEmpMessage.style.color = color;
+}
+
+/* ----------------------------------------------------
+ * Asset History Logger
+ * -------------------------------------------------- */
+
+async function addToHistory(assetId, action, detail = "") {
+  try {
+    await addDoc(collection(db, "assetHistory"), {
+      assetId,
+      action,       // e.g. "Borrowed", "Returned", "Rejected", "Added", "Edited", "Removed"
+      detail,       // e.g. "by ernest.tan"
+      timestamp: serverTimestamp(),
+    });
+  } catch (err) {
+    console.error("Failed to write history:", err);
+  }
+}
+
+/* ----------------------------------------------------
+ * History Modal
+ * -------------------------------------------------- */
+
+// Inject modal into DOM once
+const historyModal = document.createElement("div");
+historyModal.id = "historyModal";
+historyModal.style.cssText = `
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(0,0,0,0.45); align-items:center; justify-content:center;
+`;
+historyModal.innerHTML = `
+  <div style="background:#fff;border-radius:16px;padding:1.5rem 2rem;max-width:600px;
+              width:90%;max-height:80vh;display:flex;flex-direction:column;gap:1rem;
+              box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <h2 id="historyModalTitle" style="margin:0;font-size:1.1rem;">Asset History</h2>
+      <button id="closeHistoryModal" style="background:none;border:none;font-size:1.4rem;
+        cursor:pointer;color:#6b7280;line-height:1;">×</button>
+    </div>
+    <div id="historyModalBody" style="overflow-y:auto;flex:1;">
+      <p style="color:#9ca3af;font-size:0.85rem;">Loading...</p>
+    </div>
+  </div>
+`;
+document.body.appendChild(historyModal);
+
+document.getElementById("closeHistoryModal").addEventListener("click", () => {
+  historyModal.style.display = "none";
+});
+historyModal.addEventListener("click", (e) => {
+  if (e.target === historyModal) historyModal.style.display = "none";
+});
+
+let historyUnsub = null;
+
+function openHistoryModal(assetId) {
+  historyModal.style.display = "flex";
+  document.getElementById("historyModalTitle").textContent = `History — ${assetId}`;
+  const body = document.getElementById("historyModalBody");
+  body.innerHTML = `<p style="color:#9ca3af;font-size:0.85rem;">Loading...</p>`;
+
+  if (historyUnsub) historyUnsub();
+
+  const q = query(
+    collection(db, "assetHistory"),
+    where("assetId", "==", assetId),
+    orderBy("timestamp", "desc")
+  );
+
+  historyUnsub = onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      body.innerHTML = `<p style="color:#9ca3af;font-size:0.85rem;">No history recorded yet.</p>`;
+      return;
+    }
+
+    const actionColors = {
+      "Borrowed":  { bg: "#dbeafe", color: "#1d4ed8" },
+      "Returned":  { bg: "#dcfce7", color: "#15803d" },
+      "Rejected":  { bg: "#fee2e2", color: "#b91c1c" },
+      "Added":     { bg: "#f3e8ff", color: "#7c3aed" },
+      "Edited":    { bg: "#fef9c3", color: "#a16207" },
+      "Removed":   { bg: "#fee2e2", color: "#b91c1c" },
+      "On loan":   { bg: "#dbeafe", color: "#1d4ed8" },
+    };
+
+    body.innerHTML = snapshot.docs.map((d) => {
+      const h = d.data();
+      const ts = h.timestamp?.toDate?.();
+      const timeStr = ts
+        ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
+        : "Just now";
+      const ac = actionColors[h.action] || { bg: "#f3f4f6", color: "#374151" };
+      return `
+        <div style="display:flex;align-items:flex-start;gap:0.75rem;
+                    padding:0.65rem 0;border-bottom:1px solid #f3f4f6;">
+          <span style="background:${ac.bg};color:${ac.color};padding:0.15rem 0.6rem;
+                       border-radius:999px;font-size:0.75rem;font-weight:600;
+                       white-space:nowrap;flex-shrink:0;">${h.action}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;color:#111827;">${h.detail || ""}</div>
+            <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.1rem;">${timeStr}</div>
+          </div>
+        </div>`;
+    }).join("");
+  });
 }
 
 /* ----------------------------------------------------
@@ -257,13 +364,19 @@ function startAssetsListener() {
         <td class="asset-status-cell">${statusChip}</td>
         <td class="asset-tracking-cell" style="color:#9ca3af;">Not linked</td>
         <td>
+          <button class="history-btn table-action-btn">History</button>
           <button class="edit-btn table-action-btn">Edit</button>
           <button class="delete-btn table-action-btn">Remove</button>
         </td>
       `;
 
-      const editBtn = tr.querySelector(".edit-btn");
-      const deleteBtn = tr.querySelector(".delete-btn");
+      const historyBtn = tr.querySelector(".history-btn");
+      const editBtn    = tr.querySelector(".edit-btn");
+      const deleteBtn  = tr.querySelector(".delete-btn");
+
+      if (historyBtn) {
+        historyBtn.addEventListener("click", () => openHistoryModal(assetId));
+      }
 
       if (editBtn) {
         editBtn.addEventListener("click", () => {
@@ -275,6 +388,7 @@ function startAssetsListener() {
         deleteBtn.addEventListener("click", async () => {
           const ok = confirm(`Remove asset ${assetId}?`);
           if (!ok) return;
+          await addToHistory(assetId, "Removed", `Asset ${assetId} (${name}) permanently removed`);
           await deleteDoc(doc(db, "assets", docSnap.id));
         });
       }
@@ -353,33 +467,24 @@ function startRequestsListener() {
         approveBtn.addEventListener("click", async () => {
           const ok = confirm(`Approve borrow request for ${data.assetId}?`);
           if (!ok) return;
-          // 1. Update request
           await updateDoc(doc(db, "borrowRequests", docSnap.id), {
             status: "Approved",
             reviewedAt: serverTimestamp(),
           });
-          // 2. Auto-update asset status to "On loan"
-          await updateDoc(doc(db, "assets", data.assetId), {
-            status: "On loan",
-          });
+          await updateDoc(doc(db, "assets", data.assetId), { status: "On loan" });
+          await addToHistory(data.assetId, "Borrowed", `Approved for ${displayName} · ${data.startDate} → ${data.endDate}`);
         });
       }
 
       if (rejectBtn && !["Rejected","Returned"].includes(statusText)) {
         rejectBtn.addEventListener("click", async () => {
           const note = prompt("Optional rejection reason:", data.adminNote || "");
-          if (note === null) return; // cancelled
-          const update = {
-            status: "Rejected",
-            reviewedAt: serverTimestamp(),
-          };
+          if (note === null) return;
+          const update = { status: "Rejected", reviewedAt: serverTimestamp() };
           if (note.trim()) update.adminNote = note.trim();
-          // 1. Update request
           await updateDoc(doc(db, "borrowRequests", docSnap.id), update);
-          // 2. Set asset back to Available if it was on loan due to this request
-          await updateDoc(doc(db, "assets", data.assetId), {
-            status: "Available",
-          });
+          await updateDoc(doc(db, "assets", data.assetId), { status: "Available" });
+          await addToHistory(data.assetId, "Rejected", `Request by ${displayName} rejected${note.trim() ? `: ${note.trim()}` : ""}`);
         });
       }
 
@@ -387,15 +492,12 @@ function startRequestsListener() {
         returnBtn.addEventListener("click", async () => {
           const ok = confirm(`Mark ${data.assetId} as returned?`);
           if (!ok) return;
-          // 1. Update request
           await updateDoc(doc(db, "borrowRequests", docSnap.id), {
             status: "Returned",
             returnedAt: serverTimestamp(),
           });
-          // 2. Set asset back to Available
-          await updateDoc(doc(db, "assets", data.assetId), {
-            status: "Available",
-          });
+          await updateDoc(doc(db, "assets", data.assetId), { status: "Available" });
+          await addToHistory(data.assetId, "Returned", `Returned by ${displayName}`);
         });
       }
 
