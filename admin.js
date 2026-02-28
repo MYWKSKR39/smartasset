@@ -314,92 +314,129 @@ if (toggleEmpMenu && employeeMenu) {
  * Assets table
  * -------------------------------------------------- */
 
+/* ----------------------------------------------------
+ * Assets table — with sortable columns
+ * -------------------------------------------------- */
+
+let allAssets = [];               // cache of all asset docs
+let sortKey = "assetId";          // current sort column
+let sortAsc = true;               // ascending or descending
+
 function startAssetsListener() {
   if (!assetTableBody) return;
 
   const colRef = collection(db, "assets");
-  const q = query(colRef, orderBy("assetId"));
+  const q = query(colRef);
 
   onSnapshot(q, (snapshot) => {
-    assetTableBody.innerHTML = "";
-
-    if (snapshot.empty) {
-      assetTableBody.innerHTML = '<tr><td colspan="8">No assets found.</td></tr>';
-      return;
-    }
-
+    allAssets = [];
     snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const tr = document.createElement("tr");
+      allAssets.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    renderAssets();
+  });
 
-      const assetId = data.assetId || docSnap.id;
-      const name = data.name || "";
-      const category = data.category || "";
-      const owner = data.owner || "";
-      const location = data.location || "";
-      const status = data.status || "";
-      const deviceId = data.deviceId || "";
-
-      // Store deviceId so applyTrackingToAssetTable can look it up
-      if (deviceId) tr.dataset.deviceId = deviceId;
-
-      // Status colour chip
-      const statusColors = {
-        "Available":  { bg: "#dcfce7", color: "#15803d" },
-        "In use":     { bg: "#dbeafe", color: "#1d4ed8" },
-        "On loan":    { bg: "#e0e7ff", color: "#4338ca" },
-        "Active":     { bg: "#dbeafe", color: "#1d4ed8" },
-        "In repair":  { bg: "#fef9c3", color: "#a16207" },
-        "Retired":    { bg: "#fee2e2", color: "#b91c1c" },
-      };
-      const chipStyle = statusColors[status] || { bg: "#f3f4f6", color: "#374151" };
-      const statusChip = status
-        ? `<span style="background:${chipStyle.bg};color:${chipStyle.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${status}</span>`
-        : "";
-
-      tr.innerHTML = `
-        <td>${assetId}</td>
-        <td>${name}</td>
-        <td>${category}</td>
-        <td>${owner}</td>
-        <td>${location}</td>
-        <td class="asset-status-cell">${statusChip}</td>
-        <td class="asset-tracking-cell" style="color:#9ca3af;">Not linked</td>
-        <td>
-          <button class="history-btn table-action-btn">History</button>
-          <button class="edit-btn table-action-btn">Edit</button>
-          <button class="delete-btn table-action-btn">Remove</button>
-        </td>
-      `;
-
-      const historyBtn = tr.querySelector(".history-btn");
-      const editBtn    = tr.querySelector(".edit-btn");
-      const deleteBtn  = tr.querySelector(".delete-btn");
-
-      if (historyBtn) {
-        historyBtn.addEventListener("click", () => openHistoryModal(assetId));
-      }
-
-      if (editBtn) {
-        editBtn.addEventListener("click", () => {
-          window.location.href = `add.html?assetId=${encodeURIComponent(docSnap.id)}`;
+  // Wire up sortable headers
+  const table = assetTableBody.closest("table");
+  if (table) {
+    table.querySelectorAll("th[data-sort]").forEach((th) => {
+      th.style.cursor = "pointer";
+      th.style.userSelect = "none";
+      th.addEventListener("click", () => {
+        const key = th.dataset.sort;
+        if (sortKey === key) {
+          sortAsc = !sortAsc;
+        } else {
+          sortKey = key;
+          sortAsc = true;
+        }
+        // Update header indicators
+        table.querySelectorAll("th[data-sort]").forEach((h) => {
+          h.querySelector(".sort-icon").textContent = " ↕";
         });
-      }
+        th.querySelector(".sort-icon").textContent = sortAsc ? " ↑" : " ↓";
+        renderAssets();
+      });
+    });
+  }
+}
 
-      if (deleteBtn) {
-        deleteBtn.addEventListener("click", async () => {
-          const ok = confirm(`Remove asset ${assetId}?`);
-          if (!ok) return;
-          await addToHistory(assetId, "Removed", `Asset ${assetId} (${name}) permanently removed`);
-          await deleteDoc(doc(db, "assets", docSnap.id));
-        });
-      }
+function renderAssets() {
+  if (!assetTableBody) return;
 
-      assetTableBody.appendChild(tr);
+  if (allAssets.length === 0) {
+    assetTableBody.innerHTML = '<tr><td colspan="9">No assets found.</td></tr>';
+    return;
+  }
+
+  // Sort
+  const sorted = [...allAssets].sort((a, b) => {
+    const aVal = (a[sortKey] || "").toString().toLowerCase();
+    const bVal = (b[sortKey] || "").toString().toLowerCase();
+    if (aVal < bVal) return sortAsc ? -1 : 1;
+    if (aVal > bVal) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  assetTableBody.innerHTML = "";
+
+  const statusColors = {
+    "Available": { bg: "#dcfce7", color: "#15803d" },
+    "In use":    { bg: "#dbeafe", color: "#1d4ed8" },
+    "On loan":   { bg: "#e0e7ff", color: "#4338ca" },
+    "Active":    { bg: "#dbeafe", color: "#1d4ed8" },
+    "In repair": { bg: "#fef9c3", color: "#a16207" },
+    "Retired":   { bg: "#fee2e2", color: "#b91c1c" },
+  };
+
+  sorted.forEach((data) => {
+    const tr = document.createElement("tr");
+
+    const assetId  = data.assetId || data.id;
+    const name     = data.name     || "";
+    const category = data.category || "";
+    const owner    = data.owner    || "";
+    const location = data.location || "";
+    const status   = data.status   || "";
+    const deviceId = data.deviceId || "";
+
+    if (deviceId) tr.dataset.deviceId = deviceId;
+
+    const chipStyle = statusColors[status] || { bg: "#f3f4f6", color: "#374151" };
+    const statusChip = status
+      ? `<span style="background:${chipStyle.bg};color:${chipStyle.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${status}</span>`
+      : "";
+
+    tr.innerHTML = `
+      <td>${assetId}</td>
+      <td>${name}</td>
+      <td>${category}</td>
+      <td>${owner}</td>
+      <td>${location}</td>
+      <td class="asset-status-cell">${statusChip}</td>
+      <td class="asset-tracking-cell" style="color:#9ca3af;">Not linked</td>
+      <td>
+        <button class="history-btn table-action-btn">History</button>
+        <button class="edit-btn table-action-btn">Edit</button>
+        <button class="delete-btn table-action-btn">Remove</button>
+      </td>
+    `;
+
+    tr.querySelector(".history-btn").addEventListener("click", () => openHistoryModal(assetId));
+    tr.querySelector(".edit-btn").addEventListener("click", () => {
+      window.location.href = `add.html?assetId=${encodeURIComponent(data.id)}`;
+    });
+    tr.querySelector(".delete-btn").addEventListener("click", async () => {
+      const ok = confirm(`Remove asset ${assetId}?`);
+      if (!ok) return;
+      await addToHistory(assetId, "Removed", `Asset ${assetId} (${name}) permanently removed`);
+      await deleteDoc(doc(db, "assets", data.id));
     });
 
-    applyTrackingToAssetTable();
+    assetTableBody.appendChild(tr);
   });
+
+  applyTrackingToAssetTable();
 }
 
 /* ----------------------------------------------------
