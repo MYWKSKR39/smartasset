@@ -99,35 +99,105 @@ if (logoutBtn) {
 }
 
 // --- ASSETS TABLE ---
+// --- ASSETS TABLE with sorting and colour chips ---
+
+let allEmpAssets = [];
+let empSortKey = "assetId";
+let empSortAsc = true;
+
+const STATUS_COLORS = {
+  "Available": { bg: "#dcfce7", color: "#15803d" },
+  "In use":    { bg: "#dbeafe", color: "#1d4ed8" },
+  "On loan":   { bg: "#e0e7ff", color: "#4338ca" },
+  "Active":    { bg: "#dbeafe", color: "#1d4ed8" },
+  "In repair": { bg: "#fef9c3", color: "#a16207" },
+  "Retired":   { bg: "#fee2e2", color: "#b91c1c" },
+};
+
 function startAssetsListener() {
   if (!assetTableBody) return;
 
   const colRef = collection(db, "assets");
-  const q = query(colRef, orderBy("assetId"));
+  const q = query(colRef);
 
   onSnapshot(q, (snapshot) => {
-    assetTableBody.innerHTML = "";
-
-    if (snapshot.empty) {
-      assetTableBody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
-      return;
-    }
-
+    allEmpAssets = [];
     snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${data.assetId || docSnap.id}</td>
-        <td>${data.name || ""}</td>
-        <td>${data.category || ""}</td>
-        <td>${data.owner || ""}</td>
-        <td>${data.location || ""}</td>
-        <td>${data.status || ""}</td>
-      `;
-
-      assetTableBody.appendChild(tr);
+      allEmpAssets.push({ id: docSnap.id, ...docSnap.data() });
     });
+    renderEmpAssets();
+  });
+
+  // Wire up sortable headers
+  const table = assetTableBody.closest("table");
+  if (table) {
+    table.querySelectorAll("th[data-sort]").forEach((th) => {
+      th.style.cursor = "pointer";
+      th.style.userSelect = "none";
+      th.addEventListener("click", () => {
+        const key = th.dataset.sort;
+        if (empSortKey === key) {
+          empSortAsc = !empSortAsc;
+        } else {
+          empSortKey = key;
+          empSortAsc = true;
+        }
+        table.querySelectorAll("th[data-sort]").forEach((h) => {
+          h.querySelector(".sort-icon").textContent = " ↕";
+        });
+        th.querySelector(".sort-icon").textContent = empSortAsc ? " ↑" : " ↓";
+        renderEmpAssets();
+      });
+    });
+  }
+}
+
+function renderEmpAssets() {
+  if (!assetTableBody) return;
+
+  if (allEmpAssets.length === 0) {
+    assetTableBody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
+    return;
+  }
+
+  const sorted = [...allEmpAssets].sort((a, b) => {
+    const aVal = (a[empSortKey] || "").toString().toLowerCase();
+    const bVal = (b[empSortKey] || "").toString().toLowerCase();
+    if (aVal < bVal) return empSortAsc ? -1 : 1;
+    if (aVal > bVal) return empSortAsc ? 1 : -1;
+    return 0;
+  });
+
+  assetTableBody.innerHTML = "";
+
+  sorted.forEach((data) => {
+    const tr = document.createElement("tr");
+    const status = data.status || "";
+    const chip = STATUS_COLORS[status] || { bg: "#f3f4f6", color: "#374151" };
+    const statusChip = status
+      ? `<span style="background:${chip.bg};color:${chip.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${status}</span>`
+      : "";
+
+    tr.innerHTML = `
+      <td>${data.assetId || data.id}</td>
+      <td>${data.name || ""}</td>
+      <td>${data.category || ""}</td>
+      <td>${data.owner || ""}</td>
+      <td>${data.location || ""}</td>
+      <td>${statusChip}</td>
+    `;
+
+    // Click row to pre-fill borrow form
+    tr.style.cursor = "pointer";
+    tr.addEventListener("click", () => {
+      const assetIdInput = document.getElementById("assetIdInput");
+      if (assetIdInput) {
+        assetIdInput.value = data.assetId || data.id;
+        document.getElementById("borrowForm")?.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+
+    assetTableBody.appendChild(tr);
   });
 }
 
