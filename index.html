@@ -8,6 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="admin.css" />
+  <style>
+    th[data-sort]:hover { background: #374151; }
+    .sort-icon { opacity: 0.5; font-size: 0.75rem; }
+  </style>
 </head>
 
 <body style="visibility:hidden">
@@ -39,12 +43,12 @@
             <table>
               <thead>
                 <tr>
-                  <th>Asset ID</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Owner</th>
-                  <th>Location</th>
-                  <th>Status</th>
+                  <th data-sort="assetId">Asset ID<span class="sort-icon"> ↕</span></th>
+                  <th data-sort="name">Name<span class="sort-icon"> ↕</span></th>
+                  <th data-sort="category">Category<span class="sort-icon"> ↕</span></th>
+                  <th data-sort="owner">Owner<span class="sort-icon"> ↕</span></th>
+                  <th data-sort="location">Location<span class="sort-icon"> ↕</span></th>
+                  <th data-sort="status">Status<span class="sort-icon"> ↕</span></th>
                   <th>Tracking</th>
                   <th>Actions</th>
                 </tr>
