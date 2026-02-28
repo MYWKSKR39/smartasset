@@ -10,8 +10,10 @@ import {
 import {
   getFirestore,
   collection,
+  doc,
   addDoc,
   getDocs,
+  getDoc,
   onSnapshot,
   query,
   where,
@@ -277,6 +279,19 @@ if (requestForm) {
     setRequestMessage("Checking availability...", "blue");
 
     try {
+      // 1. Check asset exists and is Available
+      const assetSnap = await getDoc(doc(db, "assets", assetId));
+      if (!assetSnap.exists()) {
+        setRequestMessage("Error: Asset ID not found. Please check and try again.", "red");
+        return;
+      }
+      const assetStatus = assetSnap.data().status || "";
+      if (assetStatus !== "Available") {
+        setRequestMessage(`Unavailable: This asset is currently "${assetStatus}" and cannot be borrowed.`, "red");
+        return;
+      }
+
+      // 2. Check for booking conflicts
       const qConflict = query(
           collection(db, "borrowRequests"), 
           where("assetId", "==", assetId)
