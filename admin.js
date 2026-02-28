@@ -346,9 +346,11 @@ function startAssetsListener() {
       // Status colour chip
       const statusColors = {
         "Available":  { bg: "#dcfce7", color: "#15803d" },
-        "On loan":    { bg: "#dbeafe", color: "#1d4ed8" },
+        "In use":     { bg: "#dbeafe", color: "#1d4ed8" },
+        "On loan":    { bg: "#e0e7ff", color: "#4338ca" },
+        "Active":     { bg: "#dbeafe", color: "#1d4ed8" },
         "In repair":  { bg: "#fef9c3", color: "#a16207" },
-        "Retired":    { bg: "#f3f4f6", color: "#6b7280" },
+        "Retired":    { bg: "#fee2e2", color: "#b91c1c" },
       };
       const chipStyle = statusColors[status] || { bg: "#f3f4f6", color: "#374151" };
       const statusChip = status
