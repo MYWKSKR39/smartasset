@@ -302,91 +302,120 @@ function applyTrackingToAssetTable() {
  * Geofence Alerts
  * -------------------------------------------------- */
 
+// Relative time helper — "Just now", "2 mins ago", "1 hr ago", etc.
+function timeAgo(ts) {
+  if (!ts) return "—";
+  const secs = Math.floor((Date.now() - ts.getTime()) / 1000);
+  if (secs < 10)  return "Just now";
+  if (secs < 60)  return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60)  return `${mins} min${mins > 1 ? "s" : ""} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)   return `${hrs} hr${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
+// Store latest per-device data so the ticker can refresh without a Firestore re-read
+const geofenceDeviceMap = new Map(); // deviceId -> { ts, label, isExit }
+let geofenceTickerInterval = null;
+
+function renderGeofenceRows() {
+  const alertsBody = document.getElementById("geofenceAlertsBody");
+  if (!alertsBody) return;
+
+  if (geofenceDeviceMap.size === 0) {
+    alertsBody.innerHTML = `
+      <tr><td colspan="5" style="color:#9ca3af;text-align:center;padding:1rem;">
+        No devices tracked yet.
+      </td></tr>`;
+    return;
+  }
+
+  alertsBody.innerHTML = "";
+  geofenceDeviceMap.forEach(({ ts, label, deviceId, isExit }) => {
+    const chipBg    = isExit ? "#fee2e2" : "#dcfce7";
+    const chipColor = isExit ? "#b91c1c" : "#15803d";
+    const chipText  = isExit ? "⚠ Outside Zone" : "✓ Inside Zone";
+    const relative  = timeAgo(ts);
+    const absolute  = ts ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}` : "—";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-size:0.85rem;">${label}</td>
+      <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${deviceId}</td>
+      <td>
+        <span style="background:${chipBg};color:${chipColor};padding:0.15rem 0.6rem;
+                     border-radius:999px;font-size:0.78rem;font-weight:600;">
+          ${chipText}
+        </span>
+      </td>
+      <td style="color:#6b7280;font-size:0.82rem;">East Singapore Zone</td>
+      <td style="color:#9ca3af;font-size:0.78rem;" title="${absolute}">
+        ${relative}
+      </td>
+    `;
+    alertsBody.appendChild(tr);
+  });
+}
+
 function startGeofenceAlertsListener() {
   const alertsBody = document.getElementById("geofenceAlertsBody");
   if (!alertsBody) return;
 
-  // Listen to geofenceAlerts — keep only the LATEST event per device
   const q = query(
     collection(db, "geofenceAlerts"),
     orderBy("timestamp", "desc")
   );
 
   onSnapshot(q, (snapshot) => {
-    alertsBody.innerHTML = "";
-
-    if (snapshot.empty) {
-      alertsBody.innerHTML = `
-        <tr><td colspan="5" style="color:#9ca3af;text-align:center;padding:1rem;">
-          No devices tracked yet.
-        </td></tr>`;
-      return;
-    }
-
-    // Build a map of deviceId -> latest event (snapshot is already newest-first)
+    // Rebuild latest-per-device from geofence events
     const latestPerDevice = new Map();
     snapshot.forEach((docSnap) => {
-      const d = docSnap.data();
+      const d  = docSnap.data();
       const id = d.deviceId || "unknown";
-      if (!latestPerDevice.has(id)) {
-        latestPerDevice.set(id, d);
-      }
+      if (!latestPerDevice.has(id)) latestPerDevice.set(id, d);
     });
 
-    // Also check deviceLocationsCache for devices that have location data
-    // but no geofence events — compute their status from coordinates
+    // Fill in devices with location data but no geofence events
     deviceLocationsCache.forEach((locData, hwId) => {
       if (!latestPerDevice.has(hwId)) {
-        // Compute distance from geofence centre
         const lat = locData.lat;
         const lng = locData.lng;
         if (typeof lat === "number" && typeof lng === "number") {
           const inside = isInsideGeofence(lat, lng);
           latestPerDevice.set(hwId, {
-            deviceId: hwId,
-            event: inside ? "Entered East Singapore Zone" : "Exited East Singapore Zone",
-            isAlert: !inside,
+            deviceId:  hwId,
+            event:     inside ? "Entered East Singapore Zone" : "Exited East Singapore Zone",
+            isAlert:   !inside,
             timestamp: locData.timestamp,
-            fromLocation: true,
           });
         }
       }
     });
 
+    // Update the shared map
+    geofenceDeviceMap.clear();
     latestPerDevice.forEach((d, deviceId) => {
-      const ts    = formatTimestamp(d.timestamp);
-      const tsStr = ts
-        ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
-        : "—";
-
-      const isExit    = d.isAlert === true ||
+      const locData = deviceLocationsCache.get(deviceId);
+      const isExit  = d.isAlert === true ||
         (d.event && d.event.toLowerCase().includes("exit"));
-      const chipBg    = isExit ? "#fee2e2" : "#dcfce7";
-      const chipColor = isExit ? "#b91c1c" : "#15803d";
-      const chipText  = isExit ? "⚠ Outside Zone" : "✓ Inside Zone";
-
-      // Try to find a friendly label from deviceLocationsCache
-      const locData  = deviceLocationsCache.get(deviceId);
-      const label    = locData?.label || deviceId;
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td style="font-size:0.85rem;">${label}</td>
-        <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${deviceId}</td>
-        <td>
-          <span style="background:${chipBg};color:${chipColor};padding:0.15rem 0.6rem;
-                       border-radius:999px;font-size:0.78rem;font-weight:600;">
-            ${chipText}
-          </span>
-        </td>
-        <td style="color:#6b7280;font-size:0.82rem;">East Singapore Zone</td>
-        <td style="color:#9ca3af;font-size:0.78rem;">Updated: ${tsStr}</td>
-      `;
-      alertsBody.appendChild(tr);
+      geofenceDeviceMap.set(deviceId, {
+        deviceId,
+        label:  locData?.label || deviceId,
+        ts:     formatTimestamp(d.timestamp),
+        isExit,
+      });
     });
+
+    renderGeofenceRows();
   }, (err) => {
     console.error("Error listening to geofenceAlerts", err);
   });
+
+  // Refresh relative timestamps every 30 seconds
+  if (geofenceTickerInterval) clearInterval(geofenceTickerInterval);
+  geofenceTickerInterval = setInterval(renderGeofenceRows, 30_000);
 }
 
 // Check if a coordinate is inside the East Singapore geofence
