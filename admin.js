@@ -415,10 +415,12 @@ function startGeofenceAlertsListener() {
       const locData = deviceLocationsCache.get(deviceId);
       const isExit  = d.isAlert === true ||
         (d.event && d.event.toLowerCase().includes("exit"));
+      // Always use the live deviceLocations timestamp so it matches the Tracking column
+      const liveTs  = locData ? formatTimestamp(locData.timestamp) : formatTimestamp(d.timestamp);
       geofenceDeviceMap.set(deviceId, {
         deviceId,
         label:  locData?.label || deviceId,
-        ts:     formatTimestamp(d.timestamp),
+        ts:     liveTs,
         isExit,
       });
     });
