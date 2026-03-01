@@ -13,7 +13,7 @@
     .sort-icon { opacity: 0.5; font-size: 0.75rem; }
 
     .scroll-table-wrap {
-      max-height: 396px; /* ~8 rows + header */
+      max-height: 300px; /* ~6 rows + header */
       overflow-y: auto;
       border-radius: 8px;
       border: 1px solid #e5e7eb;
@@ -31,6 +31,32 @@
       position: sticky;
       top: 0;
       z-index: 1;
+    }
+    /* Geofence table — no max-height cap, larger text */
+    .geofence-table-wrap {
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    .geofence-table-wrap::-webkit-scrollbar { width: 6px; }
+    .geofence-table-wrap::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+    .geofence-table-wrap table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .geofence-table-wrap thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      font-size: 1rem;
+      padding: 0.9rem 1rem;
+    }
+    .geofence-table-wrap tbody td {
+      font-size: 0.95rem;
+      padding: 0.85rem 1rem;
     }
   </style>
 </head>
@@ -151,7 +177,7 @@
             </span>
           </h2>
         </div>
-        <div class="scroll-table-wrap">
+        <div class="geofence-table-wrap">
           <table>
             <thead>
               <tr>
