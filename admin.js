@@ -348,12 +348,14 @@ function renderGeofenceRows() {
     // Prefer asset name; fall back to hardware label
     const assetName = getAssetNameForDevice(deviceId) || label;
 
-    // Show "● Live" if updated within last 2 minutes, else relative time
-    const ageMs   = ts ? Date.now() - ts.getTime() : Infinity;
-    const isLive  = ageMs <= 2 * 60 * 1000;
+    // Match the "Tracking" column style from the assets table
+    const ageMs  = ts ? Date.now() - ts.getTime() : Infinity;
+    const isLive = ageMs <= 2 * 60 * 1000;
     const timeCell = isLive
       ? `<span style="color:#16a34a;font-weight:600;">● Live</span>`
-      : `<span style="color:#9ca3af;" title="${absolute}">${timeAgo(ts)}</span>`;
+      : ts
+        ? `<span style="color:#374151;">Last seen: ${absolute}</span>`
+        : `<span style="color:#9ca3af;">No signal</span>`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
