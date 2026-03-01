@@ -34,7 +34,7 @@
     }
     /* Geofence table — no max-height cap, full width */
     .geofence-table-wrap {
-      overflow-y: auto;
+      overflow-x: auto;
       border-radius: 8px;
       border: 1px solid #e5e7eb;
       width: 100%;
@@ -47,18 +47,18 @@
     .geofence-table-wrap table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: auto;
+      min-width: 600px;
     }
     .geofence-table-wrap thead th {
       position: sticky;
       top: 0;
       z-index: 1;
+      white-space: nowrap;
     }
-    .geofence-table-wrap col.col-device   { width: 20%; }
-    .geofence-table-wrap col.col-id       { width: 25%; }
-    .geofence-table-wrap col.col-status   { width: 18%; }
-    .geofence-table-wrap col.col-zone     { width: 22%; }
-    .geofence-table-wrap col.col-updated  { width: 15%; }
+    .geofence-table-wrap tbody td {
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -170,7 +170,7 @@
         </div>
       </section>
 
-      <section class="content-card full-width-card">
+      <section class="content-card full-width-card" style="grid-column:1/-1;width:100%;">
         <div class="content-header">
           <h2>⚠ Geofence alerts
             <span style="font-size:0.78rem;font-weight:400;color:#9ca3af;margin-left:0.5rem;">
@@ -180,13 +180,6 @@
         </div>
         <div class="geofence-table-wrap">
           <table>
-            <colgroup>
-              <col class="col-device">
-              <col class="col-id">
-              <col class="col-status">
-              <col class="col-zone">
-              <col class="col-updated">
-            </colgroup>
             <thead>
               <tr>
                 <th>Device</th>
