@@ -306,6 +306,7 @@ function startGeofenceAlertsListener() {
   const alertsBody = document.getElementById("geofenceAlertsBody");
   if (!alertsBody) return;
 
+  // Listen to geofenceAlerts — keep only the LATEST event per device
   const q = query(
     collection(db, "geofenceAlerts"),
     orderBy("timestamp", "desc")
@@ -316,30 +317,62 @@ function startGeofenceAlertsListener() {
 
     if (snapshot.empty) {
       alertsBody.innerHTML = `
-        <tr><td colspan="4" style="color:#9ca3af;text-align:center;padding:1rem;">
-          No geofence events recorded yet.
+        <tr><td colspan="5" style="color:#9ca3af;text-align:center;padding:1rem;">
+          No devices tracked yet.
         </td></tr>`;
       return;
     }
 
+    // Build a map of deviceId -> latest event (snapshot is already newest-first)
+    const latestPerDevice = new Map();
     snapshot.forEach((docSnap) => {
-      const d    = docSnap.data();
-      const ts   = formatTimestamp(d.timestamp);
+      const d = docSnap.data();
+      const id = d.deviceId || "unknown";
+      if (!latestPerDevice.has(id)) {
+        latestPerDevice.set(id, d);
+      }
+    });
+
+    // Also check deviceLocationsCache for devices that have location data
+    // but no geofence events — compute their status from coordinates
+    deviceLocationsCache.forEach((locData, hwId) => {
+      if (!latestPerDevice.has(hwId)) {
+        // Compute distance from geofence centre
+        const lat = locData.lat;
+        const lng = locData.lng;
+        if (typeof lat === "number" && typeof lng === "number") {
+          const inside = isInsideGeofence(lat, lng);
+          latestPerDevice.set(hwId, {
+            deviceId: hwId,
+            event: inside ? "Entered East Singapore Zone" : "Exited East Singapore Zone",
+            isAlert: !inside,
+            timestamp: locData.timestamp,
+            fromLocation: true,
+          });
+        }
+      }
+    });
+
+    latestPerDevice.forEach((d, deviceId) => {
+      const ts    = formatTimestamp(d.timestamp);
       const tsStr = ts
         ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
-        : "Just now";
+        : "—";
 
       const isExit    = d.isAlert === true ||
         (d.event && d.event.toLowerCase().includes("exit"));
       const chipBg    = isExit ? "#fee2e2" : "#dcfce7";
       const chipColor = isExit ? "#b91c1c" : "#15803d";
-      const chipText  = isExit ? "⚠ Exited Zone" : "✓ Entered Zone";
-      const deviceId  = d.deviceId || "Unknown device";
+      const chipText  = isExit ? "⚠ Outside Zone" : "✓ Inside Zone";
+
+      // Try to find a friendly label from deviceLocationsCache
+      const locData  = deviceLocationsCache.get(deviceId);
+      const label    = locData?.label || deviceId;
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${tsStr}</td>
-        <td style="font-family:monospace;font-size:0.8rem;">${deviceId}</td>
+        <td style="font-size:0.85rem;">${label}</td>
+        <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${deviceId}</td>
         <td>
           <span style="background:${chipBg};color:${chipColor};padding:0.15rem 0.6rem;
                        border-radius:999px;font-size:0.78rem;font-weight:600;">
@@ -347,12 +380,29 @@ function startGeofenceAlertsListener() {
           </span>
         </td>
         <td style="color:#6b7280;font-size:0.82rem;">East Singapore Zone</td>
+        <td style="color:#9ca3af;font-size:0.78rem;">Updated: ${tsStr}</td>
       `;
       alertsBody.appendChild(tr);
     });
   }, (err) => {
     console.error("Error listening to geofenceAlerts", err);
   });
+}
+
+// Check if a coordinate is inside the East Singapore geofence
+function isInsideGeofence(lat, lng) {
+  const centreLat = 1.3560;
+  const centreLng = 103.9700;
+  const radiusM   = 6000;
+
+  const R    = 6371000; // Earth radius in metres
+  const dLat = (lat - centreLat) * Math.PI / 180;
+  const dLng = (lng - centreLng) * Math.PI / 180;
+  const a    = Math.sin(dLat/2) * Math.sin(dLat/2) +
+               Math.cos(centreLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+               Math.sin(dLng/2) * Math.sin(dLng/2);
+  const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return dist <= radiusM;
 }
 
 /* ----------------------------------------------------
