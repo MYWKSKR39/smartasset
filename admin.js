@@ -26,8 +26,6 @@ import {
 // --- DEMO CONFIGURATION ---
 const BASE_GMAIL_USER = "ernesttan24";
 const GMAIL_DOMAIN = "@gmail.com";
-
-// This must match the email you manually created in Firebase Console
 const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
 
 const app = initializeApp(firebaseConfig);
@@ -35,26 +33,21 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // DOM references
-const userEmailSpan = document.getElementById("userEmail");
-const logoutBtn = document.getElementById("logoutBtn");
-const addAssetBtn = document.getElementById("addAssetBtn");
-const assetTableBody = document.getElementById("assetTableBody");
-const requestTableBody = document.getElementById("requestTableBody");
-const newEmpIdInput = document.getElementById("newEmpId");
+const userEmailSpan       = document.getElementById("userEmail");
+const logoutBtn           = document.getElementById("logoutBtn");
+const addAssetBtn         = document.getElementById("addAssetBtn");
+const assetTableBody      = document.getElementById("assetTableBody");
+const requestTableBody    = document.getElementById("requestTableBody");
+const newEmpIdInput       = document.getElementById("newEmpId");
 const newEmpPasswordInput = document.getElementById("newEmpPassword");
-const createEmpBtn = document.getElementById("createEmpBtn");
-const createEmpMessage = document.getElementById("createEmpMessage");
+const createEmpBtn        = document.getElementById("createEmpBtn");
+const createEmpMessage    = document.getElementById("createEmpMessage");
+const toggleEmpMenu       = document.getElementById("toggleEmpMenu");
+const employeeMenu        = document.getElementById("employeeMenu");
+const toggleMapBtn        = document.getElementById("toggleMapBtn");
+const mapSection          = document.getElementById("mapSection");
+const mapStatus           = document.getElementById("mapStatus");
 
-// employee menu toggle
-const toggleEmpMenu = document.getElementById("toggleEmpMenu");
-const employeeMenu = document.getElementById("employeeMenu");
-
-// map related DOM
-const toggleMapBtn = document.getElementById("toggleMapBtn");
-const mapSection = document.getElementById("mapSection");
-const mapStatus = document.getElementById("mapStatus");
-
-// helper to show text under Create employee login
 function setEmpMessage(text, color) {
   if (!createEmpMessage) return;
   createEmpMessage.textContent = text;
@@ -69,8 +62,8 @@ async function addToHistory(assetId, action, detail = "") {
   try {
     await addDoc(collection(db, "assetHistory"), {
       assetId,
-      action,       // e.g. "Borrowed", "Returned", "Rejected", "Added", "Edited", "Removed"
-      detail,       // e.g. "by ernest.tan"
+      action,
+      detail,
       timestamp: serverTimestamp(),
     });
   } catch (err) {
@@ -82,7 +75,6 @@ async function addToHistory(assetId, action, detail = "") {
  * History Modal
  * -------------------------------------------------- */
 
-// Inject modal into DOM once
 const historyModal = document.createElement("div");
 historyModal.id = "historyModal";
 historyModal.style.cssText = `
@@ -112,7 +104,7 @@ historyModal.addEventListener("click", (e) => {
   if (e.target === historyModal) historyModal.style.display = "none";
 });
 
-let historyUnsub = null;
+let historyUnsub    = null;
 let historyReqUnsub = null;
 
 function openHistoryModal(assetId) {
@@ -121,7 +113,6 @@ function openHistoryModal(assetId) {
   const body = document.getElementById("historyModalBody");
   body.innerHTML = `<p style="color:#9ca3af;font-size:0.85rem;">Loading...</p>`;
 
-  // Stop any previous listeners
   if (historyUnsub) historyUnsub();
   if (historyReqUnsub) historyReqUnsub();
 
@@ -135,35 +126,27 @@ function openHistoryModal(assetId) {
     "Removed":   { bg: "#fee2e2", color: "#b91c1c" },
   };
 
-  // Hold both snapshots so we can merge and re-render whenever either updates
   let historyDocs = [];
   let requestDocs = [];
 
   function renderMerged() {
-    // Build unified event list from both sources
     const events = [];
 
-    // From assetHistory collection
     historyDocs.forEach((d) => {
-      const h = d.data();
+      const h  = d.data();
       const ts = h.timestamp?.toDate?.() || null;
       events.push({ ts, action: h.action, detail: h.detail || "" });
     });
 
-    // From borrowRequests collection — derive events from status + timestamps
     requestDocs.forEach((d) => {
       const r = d.data();
-
-      // Clean up requester name
       let name = r.requestedBy || "Unknown";
       if (name.includes("+")) {
         const parts = name.split("+");
         if (parts[1]) name = parts[1].split("@")[0];
       }
-
       const dateRange = `${r.startDate || "?"} → ${r.endDate || "?"}`;
 
-      // Request submitted
       if (r.createdAt) {
         events.push({
           ts: r.createdAt.toDate?.() || null,
@@ -171,8 +154,6 @@ function openHistoryModal(assetId) {
           detail: `${name} requested · ${dateRange}${r.reason ? ` · "${r.reason}"` : ""}`,
         });
       }
-
-      // Approved
       if (r.reviewedAt && r.status === "Approved") {
         events.push({
           ts: r.reviewedAt.toDate?.() || null,
@@ -180,8 +161,6 @@ function openHistoryModal(assetId) {
           detail: `Approved for ${name} · ${dateRange}`,
         });
       }
-
-      // Rejected
       if (r.reviewedAt && r.status === "Rejected") {
         events.push({
           ts: r.reviewedAt.toDate?.() || null,
@@ -189,8 +168,6 @@ function openHistoryModal(assetId) {
           detail: `Request by ${name} rejected${r.adminNote ? `: ${r.adminNote}` : ""}`,
         });
       }
-
-      // Returned
       if (r.returnedAt) {
         events.push({
           ts: r.returnedAt.toDate?.() || null,
@@ -205,7 +182,6 @@ function openHistoryModal(assetId) {
       return;
     }
 
-    // Sort newest first
     events.sort((a, b) => {
       if (!a.ts) return -1;
       if (!b.ts) return 1;
@@ -231,7 +207,6 @@ function openHistoryModal(assetId) {
     }).join("");
   }
 
-  // Listen to assetHistory
   const qHistory = query(
     collection(db, "assetHistory"),
     where("assetId", "==", assetId),
@@ -242,7 +217,6 @@ function openHistoryModal(assetId) {
     renderMerged();
   });
 
-  // Listen to borrowRequests for this asset
   const qReqs = query(
     collection(db, "borrowRequests"),
     where("assetId", "==", assetId)
@@ -254,7 +228,7 @@ function openHistoryModal(assetId) {
 }
 
 /* ----------------------------------------------------
- * LIVE CACHE for deviceLocations (so assets table can show tracking)
+ * LIVE CACHE for deviceLocations
  * -------------------------------------------------- */
 
 let deviceLocationsUnsub = null;
@@ -262,29 +236,21 @@ const deviceLocationsCache = new Map();
 
 function startDeviceLocationsListener() {
   if (deviceLocationsUnsub) return;
-
   const colRef = collection(db, "deviceLocations");
-
-  deviceLocationsUnsub = onSnapshot(
-    colRef,
-    (snapshot) => {
-      deviceLocationsCache.clear();
-      snapshot.forEach((docSnap) => {
-        deviceLocationsCache.set(docSnap.id, docSnap.data());
-      });
-      applyTrackingToAssetTable();
-    },
-    (err) => {
-      console.error("Error listening to deviceLocations", err);
-    }
-  );
+  deviceLocationsUnsub = onSnapshot(colRef, (snapshot) => {
+    deviceLocationsCache.clear();
+    snapshot.forEach((docSnap) => {
+      deviceLocationsCache.set(docSnap.id, docSnap.data());
+    });
+    applyTrackingToAssetTable();
+  }, (err) => {
+    console.error("Error listening to deviceLocations", err);
+  });
 }
 
 function formatTimestamp(ts) {
   if (!ts) return null;
-  if (ts.toDate && typeof ts.toDate === "function") {
-    return ts.toDate();
-  }
+  if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
   try {
     const d = new Date(ts);
     if (!isNaN(d.getTime())) return d;
@@ -294,18 +260,11 @@ function formatTimestamp(ts) {
 
 function applyTrackingToAssetTable() {
   if (!assetTableBody) return;
-
   const now = Date.now();
-
-  // Build a reverse map: hardwareDeviceId → locationData
-  // (deviceLocationsCache is already keyed by hardware device ID)
   const rows = assetTableBody.querySelectorAll("tr");
-
   rows.forEach((row) => {
     const trackingCell = row.querySelector(".asset-tracking-cell");
     if (!trackingCell) return;
-
-    // Each row stores the linked hardware device ID as a data attribute
     const linkedDeviceId = row.dataset.deviceId;
     if (!linkedDeviceId) {
       trackingCell.textContent = "Not linked";
@@ -313,7 +272,6 @@ function applyTrackingToAssetTable() {
       trackingCell.style.color = "#9ca3af";
       return;
     }
-
     const deviceData = deviceLocationsCache.get(linkedDeviceId);
     if (!deviceData) {
       trackingCell.textContent = "No signal";
@@ -321,18 +279,14 @@ function applyTrackingToAssetTable() {
       trackingCell.style.color = "#9ca3af";
       return;
     }
-
     const ts = formatTimestamp(deviceData.timestamp);
     if (!ts) {
       trackingCell.textContent = "Tracked, no timestamp";
       trackingCell.style.color = "";
       return;
     }
-
-    const ageMs = now - ts.getTime();
-    const ageMinutes = ageMs / 60000;
+    const ageMinutes = (now - ts.getTime()) / 60000;
     const tsStr = `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`;
-
     if (ageMinutes <= 2) {
       trackingCell.innerHTML = `<span style="color:#16a34a;font-weight:600;">● Live</span>`;
       trackingCell.title = `Last seen: ${tsStr}`;
@@ -345,7 +299,64 @@ function applyTrackingToAssetTable() {
 }
 
 /* ----------------------------------------------------
- * AUTH PROTECT (Redirect if not Admin)
+ * Geofence Alerts
+ * -------------------------------------------------- */
+
+function startGeofenceAlertsListener() {
+  const alertsBody = document.getElementById("geofenceAlertsBody");
+  if (!alertsBody) return;
+
+  const q = query(
+    collection(db, "geofenceAlerts"),
+    orderBy("timestamp", "desc")
+  );
+
+  onSnapshot(q, (snapshot) => {
+    alertsBody.innerHTML = "";
+
+    if (snapshot.empty) {
+      alertsBody.innerHTML = `
+        <tr><td colspan="4" style="color:#9ca3af;text-align:center;padding:1rem;">
+          No geofence events recorded yet.
+        </td></tr>`;
+      return;
+    }
+
+    snapshot.forEach((docSnap) => {
+      const d    = docSnap.data();
+      const ts   = formatTimestamp(d.timestamp);
+      const tsStr = ts
+        ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
+        : "Just now";
+
+      const isExit    = d.isAlert === true ||
+        (d.event && d.event.toLowerCase().includes("exit"));
+      const chipBg    = isExit ? "#fee2e2" : "#dcfce7";
+      const chipColor = isExit ? "#b91c1c" : "#15803d";
+      const chipText  = isExit ? "⚠ Exited Zone" : "✓ Entered Zone";
+      const deviceId  = d.deviceId || "Unknown device";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${tsStr}</td>
+        <td style="font-family:monospace;font-size:0.8rem;">${deviceId}</td>
+        <td>
+          <span style="background:${chipBg};color:${chipColor};padding:0.15rem 0.6rem;
+                       border-radius:999px;font-size:0.78rem;font-weight:600;">
+            ${chipText}
+          </span>
+        </td>
+        <td style="color:#6b7280;font-size:0.82rem;">East Singapore Zone</td>
+      `;
+      alertsBody.appendChild(tr);
+    });
+  }, (err) => {
+    console.error("Error listening to geofenceAlerts", err);
+  });
+}
+
+/* ----------------------------------------------------
+ * AUTH PROTECT
  * -------------------------------------------------- */
 
 onAuthStateChanged(auth, (user) => {
@@ -353,40 +364,37 @@ onAuthStateChanged(auth, (user) => {
     window.location.replace("login.html");
     return;
   }
-  
+
   if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     window.location.replace("employee.html");
     return;
   }
 
-  // Auth confirmed — reveal the page
   document.body.style.visibility = "visible";
 
   if (userEmailSpan) {
-    userEmailSpan.textContent = user.displayName || "Admin"; 
+    userEmailSpan.textContent = user.displayName || "Admin";
   }
 
   startDeviceLocationsListener();
   startAssetsListener();
   startRequestsListener();
+  startGeofenceAlertsListener();
   setupMapUi();
 });
 
-// logout
 if (logoutBtn) {
   logoutBtn.addEventListener("click", async () => {
     await signOut(auth);
   });
 }
 
-// add asset button
 if (addAssetBtn) {
   addAssetBtn.addEventListener("click", () => {
     window.location.href = "add.html";
   });
 }
 
-// toggle employee menu
 if (toggleEmpMenu && employeeMenu) {
   toggleEmpMenu.addEventListener("click", () => {
     const isOpen = employeeMenu.style.display === "block";
@@ -398,24 +406,17 @@ if (toggleEmpMenu && employeeMenu) {
 }
 
 /* ----------------------------------------------------
- * Assets table
+ * Assets table — sortable columns
  * -------------------------------------------------- */
 
-/* ----------------------------------------------------
- * Assets table — with sortable columns
- * -------------------------------------------------- */
-
-let allAssets = [];               // cache of all asset docs
-let sortKey = "assetId";          // current sort column
-let sortAsc = true;               // ascending or descending
+let allAssets = [];
+let sortKey   = "assetId";
+let sortAsc   = true;
 
 function startAssetsListener() {
   if (!assetTableBody) return;
 
-  const colRef = collection(db, "assets");
-  const q = query(colRef);
-
-  onSnapshot(q, (snapshot) => {
+  onSnapshot(query(collection(db, "assets")), (snapshot) => {
     allAssets = [];
     snapshot.forEach((docSnap) => {
       allAssets.push({ id: docSnap.id, ...docSnap.data() });
@@ -423,11 +424,10 @@ function startAssetsListener() {
     renderAssets();
   });
 
-  // Wire up sortable headers
   const table = assetTableBody.closest("table");
   if (table) {
     table.querySelectorAll("th[data-sort]").forEach((th) => {
-      th.style.cursor = "pointer";
+      th.style.cursor     = "pointer";
       th.style.userSelect = "none";
       th.addEventListener("click", () => {
         const key = th.dataset.sort;
@@ -437,7 +437,6 @@ function startAssetsListener() {
           sortKey = key;
           sortAsc = true;
         }
-        // Update header indicators
         table.querySelectorAll("th[data-sort]").forEach((h) => {
           h.querySelector(".sort-icon").textContent = " ↕";
         });
@@ -456,7 +455,6 @@ function renderAssets() {
     return;
   }
 
-  // Sort
   const sorted = [...allAssets].sort((a, b) => {
     const aVal = (a[sortKey] || "").toString().toLowerCase();
     const bVal = (b[sortKey] || "").toString().toLowerCase();
@@ -489,9 +487,11 @@ function renderAssets() {
 
     if (deviceId) tr.dataset.deviceId = deviceId;
 
-    const chipStyle = statusColors[status] || { bg: "#f3f4f6", color: "#374151" };
+    const chipStyle  = statusColors[status] || { bg: "#f3f4f6", color: "#374151" };
     const statusChip = status
-      ? `<span style="background:${chipStyle.bg};color:${chipStyle.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${status}</span>`
+      ? `<span style="background:${chipStyle.bg};color:${chipStyle.color};
+                      padding:0.15rem 0.6rem;border-radius:999px;
+                      font-size:0.78rem;font-weight:600;">${status}</span>`
       : "";
 
     tr.innerHTML = `
@@ -527,47 +527,44 @@ function renderAssets() {
 }
 
 /* ----------------------------------------------------
- * Borrow requests table (UPDATED)
+ * Borrow requests table
  * -------------------------------------------------- */
 
 function startRequestsListener() {
   if (!requestTableBody) return;
 
-  const colRef = collection(db, "borrowRequests");
-  const q = query(colRef, orderBy("createdAt", "desc"));
+  const q = query(collection(db, "borrowRequests"), orderBy("createdAt", "desc"));
 
   onSnapshot(q, (snapshot) => {
     requestTableBody.innerHTML = "";
 
     if (snapshot.empty) {
-      requestTableBody.innerHTML = '<tr><td colspan="8">No borrow requests yet.</td></tr>';
+      requestTableBody.innerHTML = '<tr><td colspan="7">No borrow requests yet.</td></tr>';
       return;
     }
 
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
-      const tr = document.createElement("tr");
+      const tr   = document.createElement("tr");
 
-      // Clean display name
       let displayName = data.requestedBy || "Unknown";
       if (displayName.includes("+")) {
         const parts = displayName.split("+");
         if (parts[1]) displayName = parts[1].split("@")[0];
       }
 
-      // Status colour
-      const statusText = data.status || "Pending";
+      const statusText   = data.status || "Pending";
       const statusColors = {
         "Pending":  { bg: "#fef9c3", color: "#a16207" },
         "Approved": { bg: "#dcfce7", color: "#15803d" },
         "Rejected": { bg: "#fee2e2", color: "#b91c1c" },
         "Returned": { bg: "#f3f4f6", color: "#6b7280" },
       };
-      const sc = statusColors[statusText] || { bg: "#f3f4f6", color: "#374151" };
-      const statusChip = `<span style="background:${sc.bg};color:${sc.color};padding:0.15rem 0.6rem;border-radius:999px;font-size:0.78rem;font-weight:600;">${statusText}</span>`;
-
-      // Admin note shown if rejected
-      const noteCell = (statusText === "Rejected" && data.adminNote)
+      const sc         = statusColors[statusText] || { bg: "#f3f4f6", color: "#374151" };
+      const statusChip = `<span style="background:${sc.bg};color:${sc.color};
+                           padding:0.15rem 0.6rem;border-radius:999px;
+                           font-size:0.78rem;font-weight:600;">${statusText}</span>`;
+      const noteCell   = (statusText === "Rejected" && data.adminNote)
         ? `<span style="font-size:0.75rem;color:#6b7280;display:block;">${data.adminNote}</span>`
         : "";
 
@@ -579,9 +576,15 @@ function startRequestsListener() {
         <td>${data.reason || ""}${noteCell}</td>
         <td>${statusChip}</td>
         <td>
-          <button class="approve-btn table-action-btn" ${statusText !== "Pending" ? "disabled style='opacity:0.4;cursor:default;'" : ""}>Approve</button>
-          <button class="reject-btn table-action-btn" ${["Rejected","Returned"].includes(statusText) ? "disabled style='opacity:0.4;cursor:default;'" : ""}>Reject</button>
-          <button class="return-btn table-action-btn" ${statusText !== "Approved" ? "disabled style='opacity:0.4;cursor:default;'" : "style='background:#dbeafe;'"}>Returned</button>
+          <button class="approve-btn table-action-btn"
+            ${statusText !== "Pending" ? "disabled style='opacity:0.4;cursor:default;'" : ""}>
+            Approve</button>
+          <button class="reject-btn table-action-btn"
+            ${["Rejected","Returned"].includes(statusText) ? "disabled style='opacity:0.4;cursor:default;'" : ""}>
+            Reject</button>
+          <button class="return-btn table-action-btn"
+            ${statusText !== "Approved" ? "disabled style='opacity:0.4;cursor:default;'" : "style='background:#dbeafe;'"}>
+            Returned</button>
         </td>
       `;
 
@@ -594,11 +597,11 @@ function startRequestsListener() {
           const ok = confirm(`Approve borrow request for ${data.assetId}?`);
           if (!ok) return;
           await updateDoc(doc(db, "borrowRequests", docSnap.id), {
-            status: "Approved",
-            reviewedAt: serverTimestamp(),
+            status: "Approved", reviewedAt: serverTimestamp(),
           });
           await updateDoc(doc(db, "assets", data.assetId), { status: "On loan" });
-          await addToHistory(data.assetId, "Borrowed", `Approved for ${displayName} · ${data.startDate} → ${data.endDate}`);
+          await addToHistory(data.assetId, "Borrowed",
+            `Approved for ${displayName} · ${data.startDate} → ${data.endDate}`);
         });
       }
 
@@ -610,7 +613,8 @@ function startRequestsListener() {
           if (note.trim()) update.adminNote = note.trim();
           await updateDoc(doc(db, "borrowRequests", docSnap.id), update);
           await updateDoc(doc(db, "assets", data.assetId), { status: "Available" });
-          await addToHistory(data.assetId, "Rejected", `Request by ${displayName} rejected${note.trim() ? `: ${note.trim()}` : ""}`);
+          await addToHistory(data.assetId, "Rejected",
+            `Request by ${displayName} rejected${note.trim() ? `: ${note.trim()}` : ""}`);
         });
       }
 
@@ -619,8 +623,7 @@ function startRequestsListener() {
           const ok = confirm(`Mark ${data.assetId} as returned?`);
           if (!ok) return;
           await updateDoc(doc(db, "borrowRequests", docSnap.id), {
-            status: "Returned",
-            returnedAt: serverTimestamp(),
+            status: "Returned", returnedAt: serverTimestamp(),
           });
           await updateDoc(doc(db, "assets", data.assetId), { status: "Available" });
           await addToHistory(data.assetId, "Returned", `Returned by ${displayName}`);
@@ -639,36 +642,25 @@ function startRequestsListener() {
 if (createEmpBtn) {
   createEmpBtn.addEventListener("click", async () => {
     setEmpMessage("", "");
-    const usernameRaw = newEmpIdInput.value.trim(); 
-    const password = newEmpPasswordInput.value;
+    const usernameRaw = newEmpIdInput.value.trim();
+    const password    = newEmpPasswordInput.value;
 
-    if (!usernameRaw) {
-      setEmpMessage("Please enter a Username or ID.", "red");
-      return;
-    }
+    if (!usernameRaw) { setEmpMessage("Please enter a Username or ID.", "red"); return; }
     if (!password || password.length < 6) {
-      setEmpMessage("Password must be at least 6 characters.", "red");
-      return;
+      setEmpMessage("Password must be at least 6 characters.", "red"); return;
     }
 
     const realEmail = `${BASE_GMAIL_USER}+${usernameRaw}${GMAIL_DOMAIN}`;
 
     try {
-      const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+      const secondaryApp  = initializeApp(firebaseConfig, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
-      
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, realEmail, password);
-      
-      await updateProfile(userCredential.user, {
-        displayName: usernameRaw
-      });
-
+      await updateProfile(userCredential.user, { displayName: usernameRaw });
       await signOut(secondaryAuth);
-
       setEmpMessage(`Created user: ${usernameRaw}`, "green");
       newEmpIdInput.value = "";
       newEmpPasswordInput.value = "";
-      
     } catch (err) {
       console.error(err);
       setEmpMessage("Error: " + (err.code || err.message), "red");
@@ -680,8 +672,8 @@ if (createEmpBtn) {
  * Live device map
  * -------------------------------------------------- */
 
-let mapInstance = null;
-const markerMap = new Map();
+let mapInstance     = null;
+const markerMap     = new Map();
 let mapLocationsUnsub = null;
 
 function setupMapUi() {
@@ -695,7 +687,6 @@ function setupMapUi() {
     } else {
       mapSection.style.display = "block";
       toggleMapBtn.textContent = "Hide map";
-
       if (typeof window.google !== "undefined") {
         initDeviceMapInternal();
       } else if (mapStatus) {
@@ -718,73 +709,63 @@ function initDeviceMapInternal() {
 
   if (mapLocationsUnsub) return;
 
-  const colRef = collection(db, "deviceLocations");
-
-  mapLocationsUnsub = onSnapshot(
-    colRef,
-    (snapshot) => {
-      if (mapStatus) {
-        mapStatus.textContent = snapshot.empty
-          ? "No devices reporting location yet."
-          : `Devices reporting: ${snapshot.size}`;
-      }
-
-      // Track which device IDs are still present
-      const activeIds = new Set();
-
-      snapshot.forEach((docSnap) => {
-        const id = docSnap.id;
-        const data = docSnap.data();
-        const lat = data.lat;
-        const lng = data.lng;
-
-        if (typeof lat !== "number" || typeof lng !== "number") return;
-
-        activeIds.add(id);
-        const position = { lat, lng };
-        const title = data.label || data.deviceName || `Device ${id}`;
-
-        const ts = formatTimestamp(data.timestamp);
-        const tsLine = ts
-          ? `Updated: ${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
-          : "";
-
-        const batPct  = data.batteryPct  != null ? `${data.batteryPct}%` : "?";
-        const batStat = data.batteryStatus || "";
-        const batTemp = data.batteryTempC != null ? `${Number(data.batteryTempC).toFixed(1)} °C` : null;
-
-        const infoHtml = `
-          <div style="font-family:system-ui,sans-serif;font-size:0.85rem;line-height:1.6;min-width:180px;">
-            <strong style="font-size:0.95rem;">${title}</strong><br>
-            🔋 ${batPct}${batStat ? ` · ${batStat}` : ""}${batTemp ? `<br>🌡️ ${batTemp}` : ""}
-            ${tsLine ? `<br><span style="color:#888;font-size:0.78rem;">${tsLine}</span>` : ""}
-          </div>`;
-
-        let marker = markerMap.get(id);
-
-        if (!marker) {
-          marker = new google.maps.Marker({ position, map: mapInstance, title });
-          const infoWindow = new google.maps.InfoWindow({ content: infoHtml });
-          marker.addListener("click", () => infoWindow.open({ anchor: marker, map: mapInstance }));
-          marker.infoWindow = infoWindow;
-          markerMap.set(id, marker);
-        } else {
-          marker.setPosition(position);
-          marker.setTitle(title);
-          if (marker.infoWindow) marker.infoWindow.setContent(infoHtml);
-        }
-      });
-
-      // Remove markers for devices no longer in Firestore
-      markerMap.forEach((marker, id) => {
-        if (!activeIds.has(id)) {
-          marker.setMap(null);
-          markerMap.delete(id);
-        }
-      });
-    },
-    (err) => {
-      console.error("Error listening to map", err);
+  mapLocationsUnsub = onSnapshot(collection(db, "deviceLocations"), (snapshot) => {
+    if (mapStatus) {
+      mapStatus.textContent = snapshot.empty
+        ? "No devices reporting location yet."
+        : `Devices reporting: ${snapshot.size}`;
     }
-  );
+
+    const activeIds = new Set();
+
+    snapshot.forEach((docSnap) => {
+      const id   = docSnap.id;
+      const data = docSnap.data();
+      const lat  = data.lat;
+      const lng  = data.lng;
+
+      if (typeof lat !== "number" || typeof lng !== "number") return;
+
+      activeIds.add(id);
+      const position = { lat, lng };
+      const title    = data.label || data.deviceName || `Device ${id}`;
+      const ts       = formatTimestamp(data.timestamp);
+      const tsLine   = ts
+        ? `Updated: ${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
+        : "";
+
+      const batPct  = data.batteryPct  != null ? `${data.batteryPct}%`                        : "?";
+      const batStat = data.batteryStatus || "";
+      const batTemp = data.batteryTempC != null ? `${Number(data.batteryTempC).toFixed(1)} °C` : null;
+
+      const infoHtml = `
+        <div style="font-family:system-ui,sans-serif;font-size:0.85rem;line-height:1.6;min-width:180px;">
+          <strong style="font-size:0.95rem;">${title}</strong><br>
+          🔋 ${batPct}${batStat ? ` · ${batStat}` : ""}${batTemp ? `<br>🌡️ ${batTemp}` : ""}
+          ${tsLine ? `<br><span style="color:#888;font-size:0.78rem;">${tsLine}</span>` : ""}
+        </div>`;
+
+      let marker = markerMap.get(id);
+      if (!marker) {
+        marker = new google.maps.Marker({ position, map: mapInstance, title });
+        const infoWindow = new google.maps.InfoWindow({ content: infoHtml });
+        marker.addListener("click", () => infoWindow.open({ anchor: marker, map: mapInstance }));
+        marker.infoWindow = infoWindow;
+        markerMap.set(id, marker);
+      } else {
+        marker.setPosition(position);
+        marker.setTitle(title);
+        if (marker.infoWindow) marker.infoWindow.setContent(infoHtml);
+      }
+    });
+
+    markerMap.forEach((marker, id) => {
+      if (!activeIds.has(id)) {
+        marker.setMap(null);
+        markerMap.delete(id);
+      }
+    });
+  }, (err) => {
+    console.error("Error listening to map", err);
+  });
 }
