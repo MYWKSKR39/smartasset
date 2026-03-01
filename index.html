@@ -11,6 +11,40 @@
   <style>
     th[data-sort]:hover { background: #374151; }
     .sort-icon { opacity: 0.5; font-size: 0.75rem; }
+
+    /* Scrollable table body — max 8 rows visible */
+    .scroll-table-wrap {
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    .scroll-table-wrap table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .scroll-table-wrap thead {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .scroll-table-wrap tbody {
+      display: block;
+      max-height: 352px; /* 8 rows × ~44px each */
+      overflow-y: auto;
+    }
+    .scroll-table-wrap tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .scroll-table-wrap tbody::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scroll-table-wrap tbody::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
   </style>
 </head>
 
@@ -39,7 +73,7 @@
               <button id="toggleEmpMenu" class="primary-btn">Create employee login</button>
             </div>
           </div>
-          <div class="table-wrapper">
+          <div class="scroll-table-wrap">
             <table>
               <thead>
                 <tr>
@@ -64,7 +98,7 @@
           <div class="content-header">
             <h2>Borrow requests</h2>
           </div>
-          <div class="table-wrapper">
+          <div class="scroll-table-wrap">
             <table>
               <thead>
                 <tr>
