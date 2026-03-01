@@ -17,9 +17,8 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-const BASE_GMAIL_USER = "ernesttan24";
-const GMAIL_DOMAIN = "@gmail.com";
-const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
+const ADMIN_EMAIL = "admin@smartasset.com";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -75,7 +74,7 @@ onAuthStateChanged(auth, async (user) => {
 
   // Auth confirmed — reveal the page
   document.body.style.visibility = "visible";
-  userEmailSpan.textContent = user.email;
+  userEmailSpan.textContent = user.displayName || "Admin";
 
   // admin logged in, if editing load the asset
   if (existingAssetId) {
