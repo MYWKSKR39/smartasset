@@ -729,26 +729,21 @@ function initDeviceMapInternal() {
           : `Devices reporting: ${snapshot.size}`;
       }
 
-      snapshot.docChanges().forEach((change) => {
-        const id = change.doc.id;
-        const data = change.doc.data();
+      // Track which device IDs are still present
+      const activeIds = new Set();
+
+      snapshot.forEach((docSnap) => {
+        const id = docSnap.id;
+        const data = docSnap.data();
         const lat = data.lat;
         const lng = data.lng;
 
-        if (change.type === "removed") {
-          const marker = markerMap.get(id);
-          if (marker) {
-            marker.setMap(null);
-            markerMap.delete(id);
-          }
-          return;
-        }
-
         if (typeof lat !== "number" || typeof lng !== "number") return;
 
+        activeIds.add(id);
         const position = { lat, lng };
         const title = data.label || data.deviceName || `Device ${id}`;
-        
+
         const ts = formatTimestamp(data.timestamp);
         const tsLine = ts
           ? `Updated: ${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`
@@ -777,6 +772,14 @@ function initDeviceMapInternal() {
           marker.setPosition(position);
           marker.setTitle(title);
           if (marker.infoWindow) marker.infoWindow.setContent(infoHtml);
+        }
+      });
+
+      // Remove markers for devices no longer in Firestore
+      markerMap.forEach((marker, id) => {
+        if (!activeIds.has(id)) {
+          marker.setMap(null);
+          markerMap.delete(id);
         }
       });
     },
