@@ -320,6 +320,12 @@ function timeAgo(ts) {
 const geofenceDeviceMap = new Map(); // deviceId -> { ts, label, isExit }
 let geofenceTickerInterval = null;
 
+// Look up asset name from allAssets by matching deviceId field
+function getAssetNameForDevice(hwDeviceId) {
+  const asset = allAssets.find(a => a.deviceId === hwDeviceId);
+  return asset ? (asset.name || asset.assetId || null) : null;
+}
+
 function renderGeofenceRows() {
   const alertsBody = document.getElementById("geofenceAlertsBody");
   if (!alertsBody) return;
@@ -337,12 +343,21 @@ function renderGeofenceRows() {
     const chipBg    = isExit ? "#fee2e2" : "#dcfce7";
     const chipColor = isExit ? "#b91c1c" : "#15803d";
     const chipText  = isExit ? "⚠ Outside Zone" : "✓ Inside Zone";
-    const relative  = timeAgo(ts);
     const absolute  = ts ? `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}` : "—";
+
+    // Prefer asset name; fall back to hardware label
+    const assetName = getAssetNameForDevice(deviceId) || label;
+
+    // Show "● Live" if updated within last 2 minutes, else relative time
+    const ageMs   = ts ? Date.now() - ts.getTime() : Infinity;
+    const isLive  = ageMs <= 2 * 60 * 1000;
+    const timeCell = isLive
+      ? `<span style="color:#16a34a;font-weight:600;">● Live</span>`
+      : `<span style="color:#9ca3af;" title="${absolute}">${timeAgo(ts)}</span>`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td style="font-size:0.85rem;">${label}</td>
+      <td style="font-size:0.85rem;font-weight:500;">${assetName}</td>
       <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${deviceId}</td>
       <td>
         <span style="background:${chipBg};color:${chipColor};padding:0.15rem 0.6rem;
@@ -351,9 +366,7 @@ function renderGeofenceRows() {
         </span>
       </td>
       <td style="color:#6b7280;font-size:0.82rem;">East Singapore Zone</td>
-      <td style="color:#9ca3af;font-size:0.78rem;" title="${absolute}">
-        ${relative}
-      </td>
+      <td style="font-size:0.78rem;">${timeCell}</td>
     `;
     alertsBody.appendChild(tr);
   });
