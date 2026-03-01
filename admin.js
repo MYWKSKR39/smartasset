@@ -707,15 +707,16 @@ function initDeviceMapInternal() {
     });
 
     // Draw East Singapore geofence boundary
+    // Centre: Tampines/Loyang area, 6km radius covers east mainland only
     new google.maps.Circle({
       map: mapInstance,
-      center: { lat: 1.3636, lng: 103.9650 },
-      radius: 8000,
+      center: { lat: 1.3560, lng: 103.9700 },
+      radius: 6000,
       strokeColor: "#2563eb",
       strokeOpacity: 0.8,
       strokeWeight: 2,
       fillColor: "#3b82f6",
-      fillOpacity: 0.12,
+      fillOpacity: 0.15,
     });
   }
 
