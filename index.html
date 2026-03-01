@@ -32,11 +32,12 @@
       top: 0;
       z-index: 1;
     }
-    /* Geofence table — no max-height cap, larger text */
+    /* Geofence table — no max-height cap, full width */
     .geofence-table-wrap {
       overflow-y: auto;
       border-radius: 8px;
       border: 1px solid #e5e7eb;
+      width: 100%;
     }
     .geofence-table-wrap::-webkit-scrollbar { width: 6px; }
     .geofence-table-wrap::-webkit-scrollbar-thumb {
@@ -46,18 +47,18 @@
     .geofence-table-wrap table {
       width: 100%;
       border-collapse: collapse;
+      table-layout: fixed;
     }
     .geofence-table-wrap thead th {
       position: sticky;
       top: 0;
       z-index: 1;
-      font-size: 1rem;
-      padding: 0.9rem 1rem;
     }
-    .geofence-table-wrap tbody td {
-      font-size: 0.95rem;
-      padding: 0.85rem 1rem;
-    }
+    .geofence-table-wrap col.col-device   { width: 20%; }
+    .geofence-table-wrap col.col-id       { width: 25%; }
+    .geofence-table-wrap col.col-status   { width: 18%; }
+    .geofence-table-wrap col.col-zone     { width: 22%; }
+    .geofence-table-wrap col.col-updated  { width: 15%; }
   </style>
 </head>
 
@@ -179,6 +180,13 @@
         </div>
         <div class="geofence-table-wrap">
           <table>
+            <colgroup>
+              <col class="col-device">
+              <col class="col-id">
+              <col class="col-status">
+              <col class="col-zone">
+              <col class="col-updated">
+            </colgroup>
             <thead>
               <tr>
                 <th>Device</th>
