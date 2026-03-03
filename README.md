@@ -10,7 +10,7 @@ A full-stack IT asset management system built with Firebase, featuring a web adm
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | ernesttan24+admin@gmail.com | *(contact author)* |
+| Admin | ernesttan24@gmail.com | *(contact author)* |
 | Employee | *(request access from admin)* | — |
 
 ---
