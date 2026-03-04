@@ -547,7 +547,7 @@ function renderAssets() {
   if (!assetTableBody) return;
 
   if (allAssets.length === 0) {
-    assetTableBody.innerHTML = '<tr><td colspan="10">No assets found.</td></tr>';
+    assetTableBody.innerHTML = '<tr><td colspan="13">No assets found.</td></tr>';
     return;
   }
 
@@ -573,14 +573,18 @@ function renderAssets() {
   sorted.forEach((data) => {
     const tr = document.createElement("tr");
 
-    const assetId      = data.assetId      || data.id;
-    const serialNumber = data.serialNumber || "—";
-    const name         = data.name         || "";
-    const category     = data.category     || "";
-    const owner        = data.owner        || "";
-    const location     = data.location     || "";
-    const status       = data.status       || "";
-    const deviceId     = data.deviceId     || "";
+    const assetId        = data.assetId        || data.id;
+    const serialNumber   = data.serialNumber   || "—";
+    const name           = data.name           || "";
+    const brand          = data.brand          || "—";
+    const model          = data.model          || "—";
+    const category       = data.category       || "";
+    const owner          = data.owner          || "";
+    const location       = data.location       || "";
+    const dateOfPurchase = data.dateOfPurchase || "—";
+    const ownership      = data.ownership      || "—";
+    const status         = data.status         || "";
+    const deviceId       = data.deviceId       || "";
 
     if (deviceId) tr.dataset.deviceId = deviceId;
 
@@ -593,11 +597,15 @@ function renderAssets() {
 
     tr.innerHTML = `
       <td>${assetId}</td>
-      <td style="font-family:monospace;font-size:0.78rem;color:#6b7280;">${serialNumber}</td>
+      <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${serialNumber}</td>
       <td>${name}</td>
+      <td>${brand}</td>
+      <td>${model}</td>
       <td>${category}</td>
       <td>${owner}</td>
       <td>${location}</td>
+      <td style="font-size:0.82rem;color:#6b7280;">${dateOfPurchase}</td>
+      <td style="font-size:0.82rem;">${ownership}</td>
       <td class="asset-status-cell">${statusChip}</td>
       <td class="asset-tracking-cell" style="color:#9ca3af;">Not linked</td>
       <td>
