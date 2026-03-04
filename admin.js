@@ -547,7 +547,7 @@ function renderAssets() {
   if (!assetTableBody) return;
 
   if (allAssets.length === 0) {
-    assetTableBody.innerHTML = '<tr><td colspan="13">No assets found.</td></tr>';
+    assetTableBody.innerHTML = '<tr><td colspan="12">No assets found.</td></tr>';
     return;
   }
 
@@ -575,7 +575,6 @@ function renderAssets() {
 
     const assetId        = data.assetId        || data.id;
     const serialNumber   = data.serialNumber   || "—";
-    const name           = data.name           || "";
     const brand          = data.brand          || "—";
     const model          = data.model          || "—";
     const category       = data.category       || "";
@@ -598,7 +597,6 @@ function renderAssets() {
     tr.innerHTML = `
       <td>${assetId}</td>
       <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${serialNumber}</td>
-      <td>${name}</td>
       <td>${brand}</td>
       <td>${model}</td>
       <td>${category}</td>
@@ -622,7 +620,7 @@ function renderAssets() {
     tr.querySelector(".delete-btn").addEventListener("click", async () => {
       const ok = confirm(`Remove asset ${assetId}?`);
       if (!ok) return;
-      await addToHistory(assetId, "Removed", `Asset ${assetId} (${name}) permanently removed`);
+      await addToHistory(assetId, "Removed", `Asset ${assetId} permanently removed`);
       await deleteDoc(doc(db, "assets", data.id));
     });
 
