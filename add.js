@@ -34,8 +34,12 @@ const formTitle = document.getElementById("formTitle");
 const assetForm = document.getElementById("assetForm");
 
 const assetIdInput     = document.getElementById("assetId");
-const serialNumberInput = document.getElementById("serialNumber");
-const nameInput = document.getElementById("name");
+const serialNumberInput   = document.getElementById("serialNumber");
+const brandInput          = document.getElementById("brand");
+const modelInput          = document.getElementById("model");
+const dateOfPurchaseInput = document.getElementById("dateOfPurchase");
+const ownershipInput      = document.getElementById("ownership");
+const nameInput           = document.getElementById("name");
 const categoryInput = document.getElementById("category");
 const ownerInput = document.getElementById("owner");
 const locationInput = document.getElementById("location");
@@ -128,7 +132,11 @@ async function loadAsset(assetId) {
       serialNumberInput.style.color = "#9ca3af";
     }
 
-    nameInput.value = data.name || "";
+    if (brandInput)          brandInput.value          = data.brand          || "";
+    if (modelInput)          modelInput.value          = data.model          || "";
+    if (dateOfPurchaseInput) dateOfPurchaseInput.value = data.dateOfPurchase || "";
+    if (ownershipInput)      ownershipInput.value      = data.ownership      || "";
+    nameInput.value     = data.name     || "";
     categoryInput.value = data.category || "";
     ownerInput.value = data.owner || "";
     locationInput.value = data.location || "";
@@ -156,8 +164,12 @@ assetForm.addEventListener("submit", async (e) => {
   const owner = ownerInput.value.trim();
   const location = locationInput.value.trim();
   const status = statusInput.value.trim();
-  const deviceId     = deviceIdInput     ? deviceIdInput.value.trim()     : "";
-  const serialNumber = serialNumberInput ? serialNumberInput.value.trim() : "";
+  const deviceId       = deviceIdInput       ? deviceIdInput.value.trim()       : "";
+  const serialNumber   = serialNumberInput   ? serialNumberInput.value.trim()   : "";
+  const brand          = brandInput          ? brandInput.value.trim()          : "";
+  const model          = modelInput          ? modelInput.value.trim()          : "";
+  const dateOfPurchase = dateOfPurchaseInput ? dateOfPurchaseInput.value.trim() : "";
+  const ownership      = ownershipInput      ? ownershipInput.value.trim()      : "";
 
   if (!assetId || !name) {
     setFormMessage("Asset ID and Name are required.", "red");
@@ -202,13 +214,15 @@ assetForm.addEventListener("submit", async (e) => {
       {
         assetId,
         name,
+        brand,
+        model,
         category,
         owner,
         location,
         status,
+        ownership,
+        dateOfPurchase,
         deviceId,
-        // Only set serialNumber on creation — merge: true means it won't be touched on edit
-        // if we omit it, but we only include it when creating a new asset
         ...(existingAssetId ? {} : { serialNumber }),
       },
       { merge: true }
