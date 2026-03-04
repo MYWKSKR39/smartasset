@@ -118,14 +118,9 @@ async function loadAsset(assetId) {
     assetIdInput.value = assetId;
     assetIdInput.disabled = true; // cannot change id in edit mode
 
-    // Serial number is read-only in edit mode — shown for reference, cannot be changed
+    // Serial number is editable in edit mode (temporarily unlocked)
     if (serialNumberInput) {
-      serialNumberInput.value = data.serialNumber || "—";
-      serialNumberInput.disabled = true;
-      serialNumberInput.title = "Serial number cannot be changed after creation";
-      serialNumberInput.style.background = "#f3f4f6";
-      serialNumberInput.style.cursor = "not-allowed";
-      serialNumberInput.style.color = "#9ca3af";
+      serialNumberInput.value = data.serialNumber || "";
     }
 
     nameInput.value = data.name || "";
@@ -209,7 +204,7 @@ assetForm.addEventListener("submit", async (e) => {
         deviceId,
         // Only set serialNumber on creation — merge: true means it won't be touched on edit
         // if we omit it, but we only include it when creating a new asset
-        ...(existingAssetId ? {} : { serialNumber }),
+        serialNumber,
       },
       { merge: true }
     );
