@@ -547,7 +547,7 @@ function renderAssets() {
   if (!assetTableBody) return;
 
   if (allAssets.length === 0) {
-    assetTableBody.innerHTML = '<tr><td colspan="9">No assets found.</td></tr>';
+    assetTableBody.innerHTML = '<tr><td colspan="10">No assets found.</td></tr>';
     return;
   }
 
@@ -573,13 +573,14 @@ function renderAssets() {
   sorted.forEach((data) => {
     const tr = document.createElement("tr");
 
-    const assetId  = data.assetId || data.id;
-    const name     = data.name     || "";
-    const category = data.category || "";
-    const owner    = data.owner    || "";
-    const location = data.location || "";
-    const status   = data.status   || "";
-    const deviceId = data.deviceId || "";
+    const assetId      = data.assetId      || data.id;
+    const serialNumber = data.serialNumber || "—";
+    const name         = data.name         || "";
+    const category     = data.category     || "";
+    const owner        = data.owner        || "";
+    const location     = data.location     || "";
+    const status       = data.status       || "";
+    const deviceId     = data.deviceId     || "";
 
     if (deviceId) tr.dataset.deviceId = deviceId;
 
@@ -592,6 +593,7 @@ function renderAssets() {
 
     tr.innerHTML = `
       <td>${assetId}</td>
+      <td style="font-family:monospace;font-size:0.78rem;color:#6b7280;">${serialNumber}</td>
       <td>${name}</td>
       <td>${category}</td>
       <td>${owner}</td>
