@@ -20,6 +20,7 @@ import {
 const BASE_GMAIL_USER = "ernesttan24";
 const GMAIL_DOMAIN = "@gmail.com";
 const ADMIN_EMAIL = `${BASE_GMAIL_USER}+admin${GMAIL_DOMAIN}`;
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -32,7 +33,8 @@ const logoutBtn = document.getElementById("logoutBtn");
 const formTitle = document.getElementById("formTitle");
 const assetForm = document.getElementById("assetForm");
 
-const assetIdInput = document.getElementById("assetId");
+const assetIdInput     = document.getElementById("assetId");
+const serialNumberInput = document.getElementById("serialNumber");
 const nameInput = document.getElementById("name");
 const categoryInput = document.getElementById("category");
 const ownerInput = document.getElementById("owner");
@@ -116,6 +118,16 @@ async function loadAsset(assetId) {
     assetIdInput.value = assetId;
     assetIdInput.disabled = true; // cannot change id in edit mode
 
+    // Serial number is read-only in edit mode — shown for reference, cannot be changed
+    if (serialNumberInput) {
+      serialNumberInput.value = data.serialNumber || "—";
+      serialNumberInput.disabled = true;
+      serialNumberInput.title = "Serial number cannot be changed after creation";
+      serialNumberInput.style.background = "#f3f4f6";
+      serialNumberInput.style.cursor = "not-allowed";
+      serialNumberInput.style.color = "#9ca3af";
+    }
+
     nameInput.value = data.name || "";
     categoryInput.value = data.category || "";
     ownerInput.value = data.owner || "";
@@ -144,7 +156,8 @@ assetForm.addEventListener("submit", async (e) => {
   const owner = ownerInput.value.trim();
   const location = locationInput.value.trim();
   const status = statusInput.value.trim();
-  const deviceId = deviceIdInput ? deviceIdInput.value.trim() : "";
+  const deviceId     = deviceIdInput     ? deviceIdInput.value.trim()     : "";
+  const serialNumber = serialNumberInput ? serialNumberInput.value.trim() : "";
 
   if (!assetId || !name) {
     setFormMessage("Asset ID and Name are required.", "red");
@@ -194,6 +207,9 @@ assetForm.addEventListener("submit", async (e) => {
         location,
         status,
         deviceId,
+        // Only set serialNumber on creation — merge: true means it won't be touched on edit
+        // if we omit it, but we only include it when creating a new asset
+        ...(existingAssetId ? {} : { serialNumber }),
       },
       { merge: true }
     );
