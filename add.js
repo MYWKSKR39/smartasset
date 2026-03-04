@@ -39,7 +39,6 @@ const brandInput          = document.getElementById("brand");
 const modelInput          = document.getElementById("model");
 const dateOfPurchaseInput = document.getElementById("dateOfPurchase");
 const ownershipInput      = document.getElementById("ownership");
-const nameInput           = document.getElementById("name");
 const categoryInput = document.getElementById("category");
 const ownerInput = document.getElementById("owner");
 const locationInput = document.getElementById("location");
@@ -136,7 +135,6 @@ async function loadAsset(assetId) {
     if (modelInput)          modelInput.value          = data.model          || "";
     if (dateOfPurchaseInput) dateOfPurchaseInput.value = data.dateOfPurchase || "";
     if (ownershipInput)      ownershipInput.value      = data.ownership      || "";
-    nameInput.value     = data.name     || "";
     categoryInput.value = data.category || "";
     ownerInput.value = data.owner || "";
     locationInput.value = data.location || "";
@@ -159,7 +157,6 @@ assetForm.addEventListener("submit", async (e) => {
   assetIdInput.style.border = ""; // reset border
 
   const assetId = assetIdInput.value.trim();
-  const name = nameInput.value.trim();
   const category = categoryInput.value.trim();
   const owner = ownerInput.value.trim();
   const location = locationInput.value.trim();
@@ -171,14 +168,9 @@ assetForm.addEventListener("submit", async (e) => {
   const dateOfPurchase = dateOfPurchaseInput ? dateOfPurchaseInput.value.trim() : "";
   const ownership      = ownershipInput      ? ownershipInput.value.trim()      : "";
 
-  if (!assetId || !name) {
-    setFormMessage("Asset ID and Name are required.", "red");
-    if (!assetId) {
-      assetIdInput.style.border = "2px solid red";
-    }
-    if (!name) {
-      nameInput.style.border = "2px solid red";
-    }
+  if (!assetId) {
+    setFormMessage("Asset ID is required.", "red");
+    assetIdInput.style.border = "2px solid red";
     return;
   }
 
@@ -213,7 +205,6 @@ assetForm.addEventListener("submit", async (e) => {
       ref,
       {
         assetId,
-        name,
         brand,
         model,
         category,
@@ -233,8 +224,8 @@ assetForm.addEventListener("submit", async (e) => {
     // Log to history
     const action = existingAssetId ? "Edited" : "Added";
     const detail = existingAssetId
-      ? `${name} updated`
-      : `${name} added to inventory`;
+      ? `Asset updated`
+      : `Asset added to inventory`;
     await addDoc(collection(db, "assetHistory"), {
       assetId,
       action,
