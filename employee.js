@@ -158,7 +158,7 @@ function renderEmpAssets() {
   if (!assetTableBody) return;
 
   if (allEmpAssets.length === 0) {
-    assetTableBody.innerHTML = '<tr><td colspan="6">No assets found.</td></tr>';
+    assetTableBody.innerHTML = '<tr><td colspan="10">No assets found.</td></tr>';
     return;
   }
 
@@ -182,10 +182,14 @@ function renderEmpAssets() {
 
     tr.innerHTML = `
       <td>${data.assetId || data.id}</td>
-      <td>${data.name || ""}</td>
+      <td style="font-family:monospace;font-size:0.75rem;color:#6b7280;">${data.serialNumber || "—"}</td>
+      <td>${data.brand || "—"}</td>
+      <td>${data.model || "—"}</td>
       <td>${data.category || ""}</td>
       <td>${data.owner || ""}</td>
       <td>${data.location || ""}</td>
+      <td style="font-size:0.82rem;color:#6b7280;">${data.dateOfPurchase || "—"}</td>
+      <td style="font-size:0.82rem;">${data.ownership || "—"}</td>
       <td>${statusChip}</td>
     `;
 
