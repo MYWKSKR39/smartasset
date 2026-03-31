@@ -219,14 +219,12 @@
 
           <div class="form-row" id="deviceIdRow" style="display:none;">
             <div class="form-group" style="flex:1;">
-              <label for="deviceId">Device ID <span style="color:#9ca3af;font-weight:400;">(optional — links live GPS tracking)</span></label>
-              <input
-                id="deviceId"
-                type="text"
-                placeholder="e.g. 068d43bb266d87e6"
-              />
+              <label for="deviceId">Link GPS Device <span style="color:#9ca3af;font-weight:400;">(optional — links live GPS tracking)</span></label>
+              <select id="deviceId">
+                <option value="">— Loading devices... —</option>
+              </select>
               <span style="font-size:0.75rem;color:#9ca3af;margin-top:0.25rem;">
-                Find this in Firebase Console → Firestore → deviceLocations → document ID
+                Select a device from the list to link real-time GPS tracking to this asset.
               </span>
             </div>
           </div>
