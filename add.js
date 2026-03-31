@@ -13,6 +13,7 @@ import {
   addDoc,
   getDoc,
   setDoc,
+  getDocs,
   collection,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
@@ -99,6 +100,46 @@ logoutBtn.addEventListener("click", async () => {
   window.location.replace("login.html");
 });
 
+// Populate device dropdown from deviceLocations collection
+async function populateDeviceDropdown(selectedDeviceId) {
+  if (!deviceIdInput) return;
+
+  try {
+    const snap = await getDocs(collection(db, "deviceLocations"));
+
+    // Clear and add default option
+    deviceIdInput.innerHTML = '<option value="">— No device linked —</option>';
+
+    if (snap.empty) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No devices found in Firestore";
+      opt.disabled = true;
+      deviceIdInput.appendChild(opt);
+      return;
+    }
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const deviceId = docSnap.id;
+      const label = data.label || deviceId;
+      const battery = data.batteryPct != null ? ` · ${data.batteryPct}%` : "";
+      const ts = data.timestamp?.toDate
+        ? ` · Last seen ${data.timestamp.toDate().toLocaleString("en-SG", { dateStyle: "short", timeStyle: "short" })}`
+        : "";
+
+      const opt = document.createElement("option");
+      opt.value = deviceId;
+      opt.textContent = `${label}${battery}${ts}`;
+      if (deviceId === selectedDeviceId) opt.selected = true;
+      deviceIdInput.appendChild(opt);
+    });
+  } catch (err) {
+    console.error("Error loading devices:", err);
+    deviceIdInput.innerHTML = '<option value="">Error loading devices</option>';
+  }
+}
+
 // load data for edit mode
 async function loadAsset(assetId) {
   try {
@@ -141,9 +182,12 @@ async function loadAsset(assetId) {
     statusInput.value = data.status || "";
     if (deviceIdInput) deviceIdInput.value = data.deviceId || "";
 
-    // Show Device ID field only in edit mode
+    // Show Device ID dropdown in edit mode and populate it
     const deviceIdRow = document.getElementById("deviceIdRow");
-    if (deviceIdRow) deviceIdRow.style.display = "flex";
+    if (deviceIdRow) {
+      deviceIdRow.style.display = "flex";
+      await populateDeviceDropdown(data.deviceId || "");
+    }
   } catch (err) {
     console.error("Error loading asset", err);
     setFormMessage("Error loading asset: " + (err.code || err.message), "red");
